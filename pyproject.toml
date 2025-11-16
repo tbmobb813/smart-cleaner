@@ -1,0 +1,12 @@
+[project]
+name = "smart-cleaner"
+version = "0.1.0"
+description = "Smart Cleaner - GUI skeleton (PyQt6)"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
