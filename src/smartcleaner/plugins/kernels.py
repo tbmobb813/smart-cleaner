@@ -1,10 +1,9 @@
 import re
-from typing import List
-from packaging import version
+from typing import List, Tuple
 from pathlib import Path
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel
-from ..utils.privilege import run_command
+from ..utils import privilege
 
 
 class KernelCleaner:
@@ -22,11 +21,11 @@ class KernelCleaner:
         return "Removes old kernel packages while keeping the current and recent backups."
 
     def get_current_kernel(self) -> str:
-        cp = run_command(['uname', '-r'], sudo=False)
+        cp = privilege.run_command(['uname', '-r'], sudo=False)
         return cp.stdout.strip()
 
     def get_installed_kernels(self) -> List[dict]:
-        result = run_command(['dpkg', '--list'], sudo=False)
+        result = privilege.run_command(['dpkg', '--list'], sudo=False)
         kernels = []
         current = self.get_current_kernel()
 
@@ -39,7 +38,7 @@ class KernelCleaner:
                     kernel_version = version_match.group(1)
                     # Try to get installed size via dpkg-query
                     try:
-                        size_cp = run_command(['dpkg-query', '-W', '-f=${Installed-Size}', package_name], sudo=False)
+                        size_cp = privilege.run_command(['dpkg-query', '-W', '-f=${Installed-Size}', package_name], sudo=False)
                         size_kb = int(size_cp.stdout.strip() or 0)
                         size_bytes = size_kb * 1024
                     except Exception:
@@ -59,7 +58,12 @@ class KernelCleaner:
         try:
             kernels = self.get_installed_kernels()
             # Sort by version (newest first) using packaging.version
-            kernels.sort(key=lambda k: version.parse(k['version']), reverse=True)
+            # Sort by numeric components extracted from the version string (best-effort)
+            def _numeric_key(v: str) -> Tuple[int, ...]:
+                nums = re.findall(r"\d+", v)
+                return tuple(int(n) for n in nums)
+
+            kernels.sort(key=lambda k: _numeric_key(k['version']), reverse=True)
 
             kept = 0
             for kernel in kernels:
@@ -86,7 +90,7 @@ class KernelCleaner:
         result = {'success': True, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
         for item in items:
             try:
-                run_command(['apt-get', 'purge', '-y', item.path], sudo=True)
+                privilege.run_command(['apt-get', 'purge', '-y', item.path], sudo=True)
                 result['cleaned_count'] += 1
                 result['total_size'] += item.size
             except Exception as e:
@@ -94,7 +98,7 @@ class KernelCleaner:
                 result['success'] = False
 
         try:
-            run_command(['apt-get', 'autoremove', '-y'], sudo=True)
+            privilege.run_command(['apt-get', 'autoremove', '-y'], sudo=True)
         except Exception:
             pass
 
