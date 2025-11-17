@@ -50,6 +50,18 @@ orchestrate operations, a small undo/logging layer, and both CLI/GUI front-ends
 
 See `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` for developer-focused
 architecture and roadmap.
+<!-- Badge: CI status -->
+![CI](https://github.com/tbmobb813/smart-cleaner/actions/workflows/ci.yml/badge.svg)
+
+# Smart Cleaner
+
+Smart Cleaner is a modular Linux system cleaning toolkit. It provides:
+
+- A small plugin system (each plugin scans and reports items that can be cleaned).
+- A manager layer to orchestrate scans/cleans and a safe undo/restore system.
+- A CLI and a minimal PyQt6 GUI skeleton (see `src/smartcleaner/gui/main_window.py`).
+
+See `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` for developer docs and plans.
 
 ## Quick start (Linux)
 
@@ -64,7 +76,7 @@ source .venv/bin/activate
 
 ```bash
 pip install --upgrade pip
-pip install pytest
+pip install -r requirements.txt
 # optional: pip install PyQt6
 ```
 
@@ -74,17 +86,23 @@ pip install pytest
 PYTHONPATH=src python -m pytest -q
 ```
 
-4. Run the GUI skeleton (requires PyQt6):
+4. Run the CLI (module form):
 
 ```bash
-python -m smartcleaner
+python -m smartcleaner.cli.commands list --db /path/to/smartcleaner.db
+```
+
+Or, after installing the package (editable install):
+
+```bash
+pip install -e .
+smartcleaner --help
 ```
 
 ## Notes on sudo and privilege escalation
 
-- The code centralizes privilege escalation in `src/smartcleaner/utils/privilege.py`.
-- To allow automated sudo runs, set `SMARTCLEANER_ALLOW_SUDO=1` in the environment
-  (the CLI/GUI should set this only after explicit user confirmation).
+Privilege escalation is centralized in `src/smartcleaner/utils/privilege.py`.
+To allow automated sudo runs, set `SMARTCLEANER_ALLOW_SUDO=1` in the environment — only after explicit user confirmation.
 
 ## Contributing
 
@@ -92,35 +110,6 @@ python -m smartcleaner
 - Avoid direct `sudo` in plugins; use `src/smartcleaner/utils/privilege.py`.
 - Add unit tests for any feature that touches system state.
 
-## Command-line interface (CLI)
+## Scheduling GC (backups cleanup)
 
-Smart Cleaner includes a small CLI to inspect and restore operations. You can run it via the package entrypoint:
-
-```bash
-python -m smartcleaner
-```
-
-Or call the CLI module directly:
-
-```bash
-python -m smartcleaner.cli.commands list --db /path/to/smartcleaner.db
-python -m smartcleaner.cli.commands show <operation_id> --db /path/to/smartcleaner.db
-python -m smartcleaner.cli.commands restore <operation_id> --db /path/to/smartcleaner.db
-```
-
-Key `restore` options:
-- `--dry-run`: show what would be restored without changing files.
-- `--yes`: skip interactive confirmation.
-- `--conflict-policy`: `rename` (default), `overwrite`, or `skip` when the destination path already exists.
-
-Backup retention (gc):
-
-Use the `gc` command to prune backup directories created by the undo system. It supports `--keep-last N` and `--older-than-days D` and prompts before deleting unless `--yes` is used.
-
-Example:
-
-```bash
-python -m smartcleaner.cli.commands gc --keep-last 10 --yes
-```
-
-See `docs/GC.md` for examples of scheduling GC via systemd timers or cron.
+Use the `gc` command to prune backups. See `docs/GC.md` for systemd and cron examples.

@@ -1,5 +1,4 @@
 from smartcleaner.plugins.kernels import KernelCleaner
-from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
 
 
 def test_kernel_scan_and_clean(monkeypatch):

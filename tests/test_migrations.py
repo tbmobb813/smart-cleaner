@@ -1,4 +1,3 @@
-from pathlib import Path
 import sqlite3
 
 from smartcleaner.db.operations import DatabaseManager, CURRENT_SCHEMA_VERSION

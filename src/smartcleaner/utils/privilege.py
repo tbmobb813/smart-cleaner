@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 import shlex
 import subprocess
-from typing import List, Sequence, Optional
+from typing import Sequence, Optional
 
 
 def _allow_sudo_from_env() -> bool:

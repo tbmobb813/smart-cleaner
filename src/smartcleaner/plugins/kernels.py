@@ -1,9 +1,9 @@
 import re
 from typing import List, Tuple
-from pathlib import Path
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
+from typing import Any, Dict
 
 
 class KernelCleaner:
@@ -21,15 +21,15 @@ class KernelCleaner:
         return "Removes old kernel packages while keeping the current and recent backups."
 
     def get_current_kernel(self) -> str:
-        cp = privilege.run_command(['uname', '-r'], sudo=False)
-        return cp.stdout.strip()
+        cp: Any = privilege.run_command(['uname', '-r'], sudo=False)
+        return str(cp.stdout).strip()
 
     def get_installed_kernels(self) -> List[dict]:
-        result = privilege.run_command(['dpkg', '--list'], sudo=False)
-        kernels = []
+        result: Any = privilege.run_command(['dpkg', '--list'], sudo=False)
+        kernels: list[dict] = []
         current = self.get_current_kernel()
 
-        for line in result.stdout.split('\n'):
+        for line in str(result.stdout).split('\n'):
             if 'linux-image-' in line and line.startswith('ii'):
                 parts = line.split()
                 package_name = parts[1]
@@ -38,8 +38,8 @@ class KernelCleaner:
                     kernel_version = version_match.group(1)
                     # Try to get installed size via dpkg-query
                     try:
-                        size_cp = privilege.run_command(['dpkg-query', '-W', '-f=${Installed-Size}', package_name], sudo=False)
-                        size_kb = int(size_cp.stdout.strip() or 0)
+                        size_cp: Any = privilege.run_command(['dpkg-query', '-W', '-f=${Installed-Size}', package_name], sudo=False)
+                        size_kb = int(str(size_cp.stdout).strip() or "0")
                         size_bytes = size_kb * 1024
                     except Exception:
                         size_bytes = 0
@@ -87,7 +87,7 @@ class KernelCleaner:
         return items
 
     def clean(self, items: List[CleanableItem]) -> dict:
-        result = {'success': True, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
+        result: Dict[str, Any] = {'success': True, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
         for item in items:
             try:
                 privilege.run_command(['apt-get', 'purge', '-y', item.path], sudo=True)

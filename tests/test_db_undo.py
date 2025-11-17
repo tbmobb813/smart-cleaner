@@ -1,5 +1,4 @@
 from pathlib import Path
-import tempfile
 
 from smartcleaner.db.operations import DatabaseManager
 from smartcleaner.managers.undo_manager import UndoManager

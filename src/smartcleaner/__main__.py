@@ -1,5 +1,8 @@
+from typing import Optional, Callable, Any
+
+# prefer CLI if click is available
+cli_main: Optional[Callable[[], Any]] = None
 try:
-    # prefer CLI if click is available
     from .cli.commands import main as cli_main
 except Exception:
     cli_main = None

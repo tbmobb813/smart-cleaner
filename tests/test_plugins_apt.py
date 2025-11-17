@@ -1,9 +1,5 @@
-from pathlib import Path
-import tempfile
 
 from smartcleaner.plugins.apt_cache import APTCacheCleaner
-from smartcleaner.utils.privilege import run_command
-from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
 
 
 def test_apt_cache_scan_and_clean(tmp_path, monkeypatch):
@@ -27,12 +23,8 @@ def test_apt_cache_scan_and_clean(tmp_path, monkeypatch):
     def fake_run(cmd, sudo=False, **kwargs):
         class CP:
             stdout = ''
-            from pathlib import Path
-            import tempfile
 
             from smartcleaner.plugins.apt_cache import APTCacheCleaner
-            from smartcleaner.utils.privilege import run_command
-            from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
 
 
             def test_apt_cache_scan_and_clean(tmp_path, monkeypatch):

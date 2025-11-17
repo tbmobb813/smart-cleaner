@@ -5,16 +5,16 @@ from typing import Optional
 from pathlib import Path
 from smartcleaner.db.operations import DatabaseManager
 from smartcleaner.managers.undo_manager import UndoManager
-import math
 
 
-def _human_size(num: int) -> str:
+def _human_size(num: float) -> str:
     # simple human-readable size
+    val = float(num)
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if abs(num) < 1024.0:
-            return f"{num:.1f}{unit}"
-        num /= 1024.0
-    return f"{num:.1f}PB"
+        if abs(val) < 1024.0:
+            return f"{val:.1f}{unit}"
+        val /= 1024.0
+    return f"{val:.1f}PB"
 
 
 def _get_db(db_path: Optional[str] = None) -> DatabaseManager:

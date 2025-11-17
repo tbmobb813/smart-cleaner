@@ -1,4 +1,5 @@
 import click
+from click.testing import CliRunner
 from smartcleaner.cli.commands import cli
 from smartcleaner.db.operations import DatabaseManager
 from smartcleaner.managers.undo_manager import UndoManager
@@ -16,7 +17,7 @@ def test_cli_list_and_show(tmp_path):
     item = CleanableItem(path=str(f), size=1, description='t', safety=SafetyLevel.SAFE)
     op_id = undo.log_operation('plug', [item])
 
-    runner = click.testing.CliRunner()
+    runner = CliRunner()
     result = runner.invoke(cli, ['list', '--db', str(db_path)])
     assert result.exit_code == 0
     assert str(op_id) in result.output
@@ -36,7 +37,7 @@ def test_cli_restore_dry_run_and_confirm(tmp_path, monkeypatch):
     item = CleanableItem(path=str(f), size=1, description='t', safety=SafetyLevel.SAFE)
     op_id = undo.log_operation('plug', [item])
 
-    runner = click.testing.CliRunner()
+    runner = CliRunner()
     # dry-run should not change files
     result = runner.invoke(cli, ['restore', str(op_id), '--db', str(db_path), '--dry-run'])
     assert result.exit_code == 0

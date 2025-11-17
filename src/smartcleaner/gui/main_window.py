@@ -1,5 +1,6 @@
 import sys
 import importlib
+from typing import TYPE_CHECKING
 try:
     qt_widgets = importlib.import_module("PyQt6.QtWidgets")
     QApplication = qt_widgets.QApplication
@@ -25,9 +26,16 @@ except Exception:
     QHBoxLayout = QVBoxLayout = QListWidget = QTableWidget = QTableWidgetItem = QPushButton = QStatusBar = _Placeholder
     Qt = None
 
+# Provide a typing-friendly alias for the base QMainWindow so mypy has a stable
+# symbol to check against even when PyQt6 isn't installed at runtime.
+if TYPE_CHECKING:
+    from PyQt6.QtWidgets import QMainWindow as _QMainWindow
+else:
+    _QMainWindow = QMainWindow
+
 from ..managers.cleaner_manager import CleanerManager
 
-class MainWindow(QMainWindow):
+class MainWindow(_QMainWindow):
     """Minimal main window for the Smart Cleaner GUI skeleton."""
 
     def __init__(self):
@@ -142,7 +150,7 @@ class MainWindow(QMainWindow):
 
 def run():
     # If PyQt6 isn't available, print a helpful message
-    if not ("PyQt6" in globals()):
+    if "PyQt6" not in globals():
         print("PyQt6 is not installed. Install PyQt6 to run the GUI: pip install PyQt6")
         return
     app = QApplication(sys.argv)

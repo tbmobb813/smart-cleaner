@@ -1,5 +1,4 @@
 import shutil
-import os
 from pathlib import Path
 
 from smartcleaner.db.operations import DatabaseManager
