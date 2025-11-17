@@ -1,5 +1,7 @@
 # Smart Cleaner - GUI skeleton (PyQt6)
 
+Version: 0.1.1
+
 ===================================
 
 ````markdown
