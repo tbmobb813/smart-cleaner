@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import List, Dict, Optional, Any
 from enum import IntEnum
 import importlib
-from pathlib import Path
 
 
 class SafetyLevel(IntEnum):
@@ -105,6 +104,43 @@ class CleanerManager:
         `create_plugin_from_factory` to create an instance.
         """
         return list(self.plugin_factories.keys())
+
+    def get_factories_metadata(self) -> Dict[str, Dict[str, Any]]:
+        """Return metadata for available factories.
+
+        The returned dict maps factory_key -> metadata dict containing:
+        - module: module path
+        - class: class name
+        - class_obj: the class object (may be None)
+        - plugin_info: module-level PLUGIN_INFO if present
+        - description: a short docstring or PLUGIN_INFO description
+        """
+        out: Dict[str, Dict[str, Any]] = {}
+        for key, cls in self.plugin_factories.items():
+            module_name, class_name = key.split(':', 1)
+            meta: Dict[str, Any] = {
+                'module': module_name,
+                'class': class_name,
+                'class_obj': cls,
+                'plugin_info': None,
+                'description': '',
+            }
+            try:
+                mod = importlib.import_module(module_name)
+                info = getattr(mod, 'PLUGIN_INFO', None)
+                if isinstance(info, dict):
+                    meta['plugin_info'] = info
+                    meta['description'] = info.get('description', '')
+                else:
+                    # fallback to class docstring
+                    meta['description'] = (cls.__doc__ or '').strip()
+            except Exception:
+                # keep defaults if import fails
+                pass
+
+            out[key] = meta
+
+        return out
 
     def create_plugin_from_factory(self, factory_key: str, *args, **kwargs):
         """Instantiate a plugin from a factory key and register it.

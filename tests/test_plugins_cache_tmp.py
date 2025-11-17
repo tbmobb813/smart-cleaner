@@ -1,4 +1,3 @@
-from pathlib import Path
 from smartcleaner.plugins.browser_cache import BrowserCacheCleaner
 from smartcleaner.plugins.thumbnails import ThumbnailCacheCleaner
 from smartcleaner.plugins.tmp_cleaner import TmpCleaner

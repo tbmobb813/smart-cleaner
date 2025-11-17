@@ -223,4 +223,40 @@ Notes:
   available the code falls back to a safe scalar TOML writer that still
   preserves plugin tables and basic array types.
 
+## Plugin discovery & JSON schema export
+
+The CLI and a small discovery API make it easy to enumerate available plugin
+factories and export a machine-readable schema for building forms.
+
+CLI examples:
+
+```bash
+# List available plugin factories as JSON (useful for tooling)
+PYTHONPATH=src python -m smartcleaner.cli.commands plugins list --json
+
+# Show detailed metadata for a factory (JSON)
+PYTHONPATH=src python -m smartcleaner.cli.commands plugins show smartcleaner.plugins.kernels:KernelCleaner --json
+
+# Export a plugin's JSON Schema / form spec (derived from PLUGIN_INFO)
+PYTHONPATH=src python -m smartcleaner.cli.commands plugins export-form smartcleaner.plugins.kernels:KernelCleaner --json
+```
+
+Programmatic discovery (Python):
+
+```python
+from smartcleaner.plugins import discovery
+
+# Returns a mapping factory_key -> metadata (module, class, plugin_info, description)
+meta = discovery.get_factories_metadata()
+for key, info in meta.items():
+    print(key, info.get('description'))
+
+# Get PLUGIN_INFO for a factory
+info = discovery.get_plugin_info('smartcleaner.plugins.kernels:KernelCleaner')
+print(info)
+```
+
+This makes it straightforward for GUI frontends to enumerate plugins and
+request a JSON Schema for rendering configuration forms.
+
 

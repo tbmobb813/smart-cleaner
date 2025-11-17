@@ -1,9 +1,7 @@
 from click.testing import CliRunner
-from pathlib import Path
-import os
 
 from smartcleaner.cli.commands import cli
-from smartcleaner.config import _config_file_path, load_config
+from smartcleaner.config import load_config
 
 
 def test_config_set_writes_file(tmp_path, monkeypatch):

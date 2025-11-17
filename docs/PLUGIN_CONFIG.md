@@ -4,7 +4,6 @@ This document describes how per-plugin configuration is stored and how to
 export a small JSON "form spec" derived from each plugin's `PLUGIN_INFO`.
 
 Overview
---------
 
 - Per-plugin configuration is stored in your XDG config file:
   `$XDG_CONFIG_HOME/smartcleaner/config.toml` (or `~/.config/smartcleaner/config.toml`).
@@ -21,14 +20,14 @@ keep_kernels = 3
   persisting. This ensures types, min/max, choices, etc. are enforced.
 
 Why export a form spec?
------------------------
+
 A JSON form schema (or a small UI form spec) allows GUI frontends or external
 tools to render precise input widgets without hard-coding plugin details.
 We generate the form spec directly from `PLUGIN_INFO` (the module-level
 metadata each plugin provides).
 
 How to generate a simple JSON form spec
---------------------------------------
+
 The following minimal Python snippet prints a JSON object that contains the
 `config` schema and `constructor` metadata from `PLUGIN_INFO`.
 
@@ -87,7 +86,7 @@ Sample output (abridged) for `smartcleaner.plugins.kernels`:
 ```
 
 Using the form spec in a UI
---------------------------
+
 - Map `type` to widget types (int -> number input, path -> file picker, list[path] -> list of file pickers, bool -> checkbox).
 - Use `min`/`max` for numeric ranges and validation.
 - Use `choices` to render a select/dropdown when present.
@@ -95,7 +94,7 @@ Using the form spec in a UI
 - Use `annotation` as a hint for showing types in tooltips.
 
 Persisting typed values
------------------------
+
 - The CLI's `config plugin set` validates the input and stores typed values in
   TOML. Paths are stored as strings, lists as TOML arrays, booleans/ints as
   TOML scalars.
@@ -104,17 +103,38 @@ Persisting typed values
   that writes plugin tables and arrays.
 
 Extending / exporting richer JSON Schema
----------------------------------------
+
 If you want a full JSON Schema (for form libraries such as react-jsonschema-form)
 we can implement a converter that maps our small `PLUGIN_INFO` schema to JSON
 Schema draft-07/2019-09. This is straightforward because our schema already
 contains the necessary keys (type/min/max/choices/required).
 
 If you'd like, I can:
+
 - Add a small command `smartcleaner plugins export-form <factory_key> --json` to
   emit the form spec for a single plugin, or
 - Add an export that emits a full JSON Schema for all discovered plugins.
 
+CLI examples
+
+You can export a plugin's form spec from the CLI. Example:
+
+```bash
+PYTHONPATH=src python -m smartcleaner.cli.commands plugins export-form smartcleaner.plugins.kernels:KernelCleaner --json
+```
+
+Programmatic discovery
+
+Use the lightweight discovery wrapper to enumerate available factories:
+
+```python
+from smartcleaner.plugins import discovery
+print(discovery.get_factory_keys())
+print(discovery.get_factories_metadata())
+```
+
+This is suitable for GUIs that need to present a list of available plugin
+config forms to users.
 
 ---
 

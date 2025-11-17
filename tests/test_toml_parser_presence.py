@@ -1,10 +1,8 @@
 def test_toml_parser_available():
     try:
-        import tomllib  # type: ignore
         available = True
     except Exception:
         try:
-            import tomli  # type: ignore
             available = True
         except Exception:
             available = False

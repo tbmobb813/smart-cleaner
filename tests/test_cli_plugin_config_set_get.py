@@ -1,7 +1,6 @@
 from click.testing import CliRunner
 from smartcleaner.cli.commands import cli
 from smartcleaner.managers.cleaner_manager import CleanerManager
-import json
 
 
 def test_cli_plugin_config_set_get(tmp_path):

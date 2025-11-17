@@ -1,7 +1,5 @@
-import os
-from pathlib import Path
 
-from smartcleaner.config import _config_file_path, get_keep_kernels, load_config
+from smartcleaner.config import get_keep_kernels
 
 
 def test_keep_kernels_from_xdg(tmp_path, monkeypatch):

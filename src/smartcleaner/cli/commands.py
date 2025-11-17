@@ -316,7 +316,6 @@ def clean_kernels(keep_kernels: Optional[int], dry_run: bool, yes: bool, db: Opt
     from smartcleaner.plugins.kernels import KernelCleaner
     from smartcleaner.config import get_keep_kernels
     from smartcleaner.managers.cleaner_manager import CleanerManager
-    from pathlib import Path
 
     # If the CLI flag wasn't provided, consult persistent config/defaults
     if keep_kernels is None:
@@ -474,11 +473,29 @@ def plugins_group():
 
 @plugins_group.command('list')
 @click.option('--brief', is_flag=True, help='Show brief output')
-def plugins_list(brief: bool):
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
+def plugins_list(brief: bool, as_json: bool):
     """List available plugin factories and basic metadata."""
     from smartcleaner.managers.cleaner_manager import CleanerManager
+    import json
 
     mgr = CleanerManager()
+    if as_json:
+        meta = mgr.get_factories_metadata()
+        # Serialize meta into JSON-friendly structures
+        serializable = {}
+        for k, v in meta.items():
+            serializable[k] = {
+                'module': v.get('module'),
+                'class': v.get('class'),
+                'name': (v.get('plugin_info') or {}).get('name') if v.get('plugin_info') else None,
+                'description': (v.get('plugin_info') or {}).get('description') or v.get('description'),
+                'plugin_info': v.get('plugin_info'),
+            }
+
+        click.echo(json.dumps(serializable, indent=2, sort_keys=True))
+        return
+
     factories = mgr.list_available_factories()
     if not factories:
         click.echo('No plugins discovered')
@@ -603,4 +620,33 @@ def plugins_show(factory_key: str, as_json: bool):
             click.echo(f"  {p}")
     except Exception:
         pass
+
+
+@plugins_group.command('export-form')
+@click.argument('factory_key', type=str)
+@click.option('--json', 'as_json', is_flag=True, help='Output schema as JSON (default)')
+def plugins_export_form(factory_key: str, as_json: bool):
+    """Export a plugin's form/schema (derived from PLUGIN_INFO) as JSON."""
+    from smartcleaner.managers.cleaner_manager import CleanerManager
+    from smartcleaner.utils.json_schema import plugin_info_to_json_schema
+    import json
+
+    mgr = CleanerManager()
+    factories = mgr.list_available_factories()
+    if factory_key not in factories:
+        click.echo(f"Unknown factory: {factory_key}")
+        return
+
+    module_name = factory_key.split(':', 1)[0]
+    try:
+        schema = plugin_info_to_json_schema(module_name)
+    except Exception as e:
+        click.echo(f"Error generating schema: {e}")
+        return
+
+    if as_json:
+        click.echo(json.dumps(schema, indent=2, sort_keys=True))
+    else:
+        # default to JSON formatted output
+        click.echo(json.dumps(schema, indent=2, sort_keys=True))
 

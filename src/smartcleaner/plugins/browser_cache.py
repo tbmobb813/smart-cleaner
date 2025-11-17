@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Any, Dict, Optional
+from typing import List, Optional
 import shutil
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel
