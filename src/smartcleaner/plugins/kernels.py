@@ -9,6 +9,31 @@ PLUGIN_INFO = {
     'name': 'Old Kernels Cleaner',
     'description': 'Detects installed linux-image packages and offers to purge older kernels while keeping the running and recent ones.',
 }
+# Extended metadata for discovery and configuration UI
+PLUGIN_INFO.update({
+    'module': 'smartcleaner.plugins.kernels',
+    'class': 'KernelCleaner',
+    'config': {
+        'keep_kernels': {
+            'type': 'int',
+            'code_default': 2,
+            'description': 'How many recent kernels to retain (the running kernel is always kept).',
+            'min': 0,
+            'max': 50,
+        }
+    },
+    'constructor': {
+        'keep': {
+            'type': 'int',
+            'default': None,
+            'description': 'How many recent kernels to keep; if null the code default is used',
+            'required': False,
+            'annotation': 'Optional[int]',
+            'min': 0,
+            'max': 50,
+        }
+    },
+})
 
 def version_key(v: str) -> Tuple[int, ...]:
     """Return a numeric key for a version-like string by extracting integer groups.

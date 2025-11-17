@@ -69,4 +69,22 @@ class BrowserCacheCleaner:
 PLUGIN_INFO = {
     'name': 'Browser Cache Cleaner',
     'description': 'Scans common browser cache directories (Chrome/Chromium/Firefox) and removes cached files and empty dirs.',
+    'module': 'smartcleaner.plugins.browser_cache',
+    'class': 'BrowserCacheCleaner',
+    'config': {
+        'base_dirs': {
+            'type': 'list[path]',
+            'description': 'List of base cache directories to scan',
+            'example': [str(Path.home() / '.cache' / 'google-chrome')]
+        }
+    },
+    'constructor': {
+        'base_dirs': {
+            'type': 'list[path]',
+            'default': None,
+            'description': 'Optional list of base cache directories',
+            'required': False,
+            'annotation': 'Optional[List[pathlib.Path] ]'
+        }
+    },
 }

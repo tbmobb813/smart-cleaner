@@ -389,6 +389,58 @@ def config_set(key: str, value: str, yes: bool):
         click.echo('Failed to set config (validation or IO error)')
 
 
+@config_group.group('plugin')
+def config_plugin_group():
+    """Manage per-plugin persistent configuration."""
+    pass
+
+
+@config_plugin_group.command('set')
+@click.argument('factory_key', type=str)
+@click.argument('key', type=str)
+@click.argument('value', type=str)
+@click.option('--yes', is_flag=True, help='Do not ask for confirmation')
+def config_plugin_set(factory_key: str, key: str, value: str, yes: bool):
+    """Set a config value for a plugin factory (factory can be module:Class or module)."""
+    from smartcleaner.config import set_plugin_config
+
+    # derive module name
+    module_name = factory_key.split(':', 1)[0]
+
+    if not yes:
+        click.echo(f'About to set plugin config {module_name}.{key} = {value}')
+        if not click.confirm('Proceed?'):
+            click.echo('Aborted.')
+            return
+
+    try:
+        ok = set_plugin_config(module_name, key, value)
+    except ValueError as e:
+        click.echo(f'Validation error: {e}')
+        return
+
+    if ok:
+        click.echo(f'Set {module_name}.{key} = {value}')
+    else:
+        click.echo('Failed to persist plugin config (IO error)')
+
+
+@config_plugin_group.command('get')
+@click.argument('factory_key', type=str)
+@click.argument('key', type=str)
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
+def config_plugin_get(factory_key: str, key: str, as_json: bool):
+    from smartcleaner.config import get_plugin_config
+    import json
+
+    module_name = factory_key.split(':', 1)[0]
+    val = get_plugin_config(module_name, key)
+    if as_json:
+        click.echo(json.dumps({ 'module': module_name, 'key': key, 'value': val }, default=str))
+    else:
+        click.echo('' if val is None else str(val))
+
+
 @config_group.command('get')
 @click.argument('key', type=str)
 @click.option('--defaults', is_flag=True, help='Show environment/config/code defaults for the key')
@@ -469,7 +521,8 @@ def plugins_list(brief: bool):
 
 @plugins_group.command('show')
 @click.argument('factory_key', type=str)
-def plugins_show(factory_key: str):
+@click.option('--json', 'as_json', is_flag=True, help='Output metadata as JSON')
+def plugins_show(factory_key: str, as_json: bool):
     """Show detailed metadata for a plugin factory key."""
     from smartcleaner.managers.cleaner_manager import CleanerManager
 
@@ -490,10 +543,44 @@ def plugins_show(factory_key: str):
     if mod is not None:
         info = getattr(mod, 'PLUGIN_INFO', None)
 
-    if info and isinstance(info, dict):
-        click.echo(f"PLUGIN_INFO:")
-        for k, v in info.items():
-            click.echo(f"  {k}: {v}")
+    if as_json:
+        import json
+
+        out = {
+            'factory_key': factory_key,
+            'plugin_info': info if isinstance(info, dict) else None,
+            'config': info.get('config') if isinstance(info, dict) else None,
+            'class': None,
+            'doc': None,
+            'constructor': None,
+        }
+
+        if cls is None and mod is not None:
+            cls = getattr(mod, class_name, None)
+
+        if cls is not None:
+            out['class'] = f"{cls.__module__}.{cls.__name__}"
+            out['doc'] = (cls.__doc__ or '').strip()
+
+        # Prefer constructor/schema from PLUGIN_INFO when available (stable),
+        # otherwise fall back to introspected signature
+        if isinstance(info, dict) and info.get('constructor') is not None:
+            out['constructor'] = info.get('constructor')
+        else:
+            try:
+                sig = inspect.signature(cls.__init__)
+                params = [p for p in sig.parameters.values() if p.name != 'self']
+                out['constructor'] = [{
+                    'name': p.name,
+                    'kind': str(p.kind),
+                    'default': None if p.default is inspect._empty else repr(p.default),
+                    'annotation': None if p.annotation is inspect._empty else str(p.annotation),
+                } for p in params]
+            except Exception:
+                out['constructor'] = None
+
+        click.echo(json.dumps(out, indent=2, sort_keys=True))
+        return
 
     if cls is None and mod is not None:
         cls = getattr(mod, class_name, None)

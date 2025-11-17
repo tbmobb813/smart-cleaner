@@ -48,3 +48,27 @@ class ThumbnailCacheCleaner:
                 result['errors'].append(str(e))
                 result['success'] = False
         return result
+
+
+    PLUGIN_INFO = {
+        'name': 'Thumbnail Cache Cleaner',
+        'description': 'Scans and cleans user thumbnail cache (~/.cache/thumbnails).',
+        'module': 'smartcleaner.plugins.thumbnails',
+        'class': 'ThumbnailCacheCleaner',
+        'config': {
+            'cache_dir': {
+                'type': 'path',
+                'description': 'Thumbnail cache directory',
+                'example': str(Path.home() / '.cache' / 'thumbnails')
+            }
+        },
+        'constructor': {
+            'cache_dir': {
+                'type': 'path',
+                'default': str(Path.home() / '.cache' / 'thumbnails'),
+                'description': 'Thumbnail cache directory',
+                'required': False,
+                'annotation': 'Optional[pathlib.Path]'
+            }
+        },
+    }

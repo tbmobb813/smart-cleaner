@@ -165,3 +165,25 @@ Constructor:
 This helps discover which plugin factories are available and what constructor
 arguments they accept.
 
+Additional sample outputs:
+
+```
+PLUGIN_INFO:
+  name: Browser Cache Cleaner
+  description: Scans common browser cache directories (Chrome/Chromium/Firefox) and removes cached files and empty dirs.
+Class: smartcleaner.plugins.browser_cache.BrowserCacheCleaner
+Doc: Cleans common browser cache directories (Chrome/Chromium/Firefox) under a base cache dir.
+Constructor:
+  base_dirs: typing.Optional[list[pathlib.Path]] = None
+```
+
+```
+PLUGIN_INFO:
+  name: Thumbnail Cache Cleaner
+  description: Scans and cleans user thumbnail cache (~/.cache/thumbnails).
+Class: smartcleaner.plugins.thumbnails.ThumbnailCacheCleaner
+Doc: Cleans the GNOME/thumbnail cache at ~/.cache/thumbnails by default.
+Constructor:
+  cache_dir: typing.Optional[pathlib.Path] = None
+```
+

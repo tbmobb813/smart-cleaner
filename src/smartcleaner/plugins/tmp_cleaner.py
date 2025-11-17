@@ -59,3 +59,27 @@ class TmpCleaner:
                 result['errors'].append(str(e))
                 result['success'] = False
         return result
+
+
+    PLUGIN_INFO = {
+        'name': 'Temporary Files Cleaner',
+        'description': 'Cleans temporary files and directories (e.g., /tmp).',
+        'module': 'smartcleaner.plugins.tmp_cleaner',
+        'class': 'TmpCleaner',
+        'config': {
+            'base_dir': {
+                'type': 'path',
+                'description': 'Base temporary directory to scan',
+                'example': '/tmp'
+            }
+        },
+        'constructor': {
+            'base_dir': {
+                'type': 'path',
+                'default': '/tmp',
+                'description': 'Base temporary directory to scan',
+                'required': False,
+                'annotation': 'Optional[pathlib.Path]'
+            }
+        },
+    }
