@@ -1,9 +1,17 @@
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Any, Dict
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
-from typing import Any, Dict
+
+
+def version_key(v: str) -> Tuple[int, ...]:
+    """Return a numeric key for a version-like string by extracting integer groups.
+
+    This is a best-effort comparator that ignores non-numeric suffixes (e.g., rc1).
+    """
+    nums = re.findall(r"\d+", v)
+    return tuple(int(n) for n in nums)
 
 
 class KernelCleaner:
@@ -11,8 +19,9 @@ class KernelCleaner:
 
     KERNELS_TO_KEEP = 2
 
-    def __init__(self):
-        pass
+    def __init__(self, keep: int | None = None):
+        # allow instance-level override; fall back to class default
+        self.kernels_to_keep = int(keep) if keep is not None else self.KERNELS_TO_KEEP
 
     def get_name(self) -> str:
         return "Old Kernels"
@@ -57,20 +66,14 @@ class KernelCleaner:
         items: List[CleanableItem] = []
         try:
             kernels = self.get_installed_kernels()
-            # Sort by version (newest first) using numeric components extracted
-            def _numeric_key(v: str) -> Tuple[int, ...]:
-                nums = re.findall(r"\d+", v)
-                return tuple(int(n) for n in nums)
 
-            kernels.sort(key=lambda k: _numeric_key(k['version']), reverse=True)
+            kernels.sort(key=lambda k: version_key(k['version']), reverse=True)
 
-            # Mark the top KERNELS_TO_KEEP as kept; always keep the current kernel
-            kept_count = 0
+            # Mark the top kernels_to_keep as kept; always keep the current kernel
             for i, kernel in enumerate(kernels):
                 kernel['keep'] = False
-                if i < self.KERNELS_TO_KEEP:
+                if i < self.kernels_to_keep:
                     kernel['keep'] = True
-                    kept_count += 1
 
             # Ensure current kernel is always kept
             for kernel in kernels:
@@ -91,6 +94,7 @@ class KernelCleaner:
         result: Dict[str, Any] = {'success': True, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
         for item in items:
             try:
+                # Purge the package name
                 privilege.run_command(['apt-get', 'purge', '-y', item.path], sudo=True)
                 result['cleaned_count'] += 1
                 result['total_size'] += item.size

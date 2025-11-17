@@ -302,3 +302,49 @@ def clean_tmp(base_dir: Optional[str], dry_run: bool, yes: bool):
         click.echo(f"Cleaned {res.get('cleaned_count',0)} items, freed {_human_size(res.get('total_size',0))}")
     else:
         click.echo(f"Errors: {res.get('errors')}")
+
+
+@clean_group.command('kernels')
+@click.option('--keep-kernels', type=int, default=None, help='How many recent kernels to keep (overrides default)')
+@click.option('--dry-run', is_flag=True, help='Show what would be deleted')
+@click.option('--yes', is_flag=True, help='Do not ask for confirmation')
+@click.option('--db', default=None, help='Path to sqlite DB (optional)')
+def clean_kernels(keep_kernels: Optional[int], dry_run: bool, yes: bool, db: Optional[str]):
+    """Clean old kernels using apt (purge + autoremove)."""
+    from smartcleaner.plugins.kernels import KernelCleaner
+    from smartcleaner.managers.cleaner_manager import CleanerManager
+    from pathlib import Path
+
+    # Instantiate with requested keep count when provided
+    plugin = KernelCleaner(keep=keep_kernels)
+    mgr = CleanerManager()
+    # ensure manager uses our plugin instance
+    mgr.plugins[plugin.get_name()] = plugin
+
+    items = plugin.scan()
+    total = sum(i.size for i in items)
+    click.echo(f"Found {len(items)} items totaling {_human_size(total)} to consider for removal")
+    for it in items:
+        click.echo(f"  - {it.path} ({_human_size(it.size)}) {it.description}")
+
+    if dry_run:
+        click.echo('Dry-run: no changes will be made.')
+        return
+
+    if not yes:
+        if not click.confirm('Proceed to purge selected old kernels?'):
+            click.echo('Aborted.')
+            return
+
+    results = mgr.clean_selected({plugin.get_name(): items}, dry_run=False)
+    res = results.get(plugin.get_name(), {})
+    if res.get('success'):
+        cleaned = res.get('cleaned_count', 0)
+        freed = res.get('total_size', 0)
+        op_id = res.get('operation_id')
+        if op_id:
+            click.echo(f"Cleaned {cleaned} items, freed {_human_size(freed)} (operation id: {op_id})")
+        else:
+            click.echo(f"Cleaned {cleaned} items, freed {_human_size(freed)}")
+    else:
+        click.echo(f"Errors: {res.get('errors')}")
