@@ -1,5 +1,4 @@
 import subprocess
-from pathlib import Path
 
 
 def test_cli_module_list(tmp_path):

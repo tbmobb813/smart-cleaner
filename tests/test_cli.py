@@ -1,4 +1,3 @@
-import click
 from click.testing import CliRunner
 from smartcleaner.cli.commands import cli
 from smartcleaner.db.operations import DatabaseManager
