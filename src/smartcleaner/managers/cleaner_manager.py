@@ -36,12 +36,15 @@ class CleanerManager:
     """
 
     def __init__(self):
-        # Discover and instantiate built-in plugins. Fall back to sample data
-        # when plugins cannot be imported (tests/environment without apt).
+        # Keep a mapping of instantiated plugin name -> instance. CLI or callers
+        # may inject plugin instances into this dict (e.g. to override config).
         self.plugins: Dict[str, Any] = {}
-        # Try to load a set of known built-in plugin modules. Failure to import
-        # any plugin is non-fatal (keeps tests and environments lightweight).
-        plugin_modules = [
+
+        # Do not instantiate plugins eagerly here. Instead, keep a list of known
+        # plugin module paths and instantiate lazily when scan_all() is called.
+        # This prevents double-instantiation when callers (like the CLI) construct
+        # and inject plugin instances for a run.
+        self._plugin_modules = [
             'smartcleaner.plugins.apt_cache',
             'smartcleaner.plugins.kernels',
             'smartcleaner.plugins.browser_cache',
@@ -49,28 +52,97 @@ class CleanerManager:
             'smartcleaner.plugins.tmp_cleaner',
         ]
 
-        for mod_name in plugin_modules:
+        # Build a registry of plugin factory callables (class objects) keyed by
+        # a stable factory key. This allows callers to discover available
+        # plugin implementations without instantiating them, and to create
+        # instances with custom constructor args.
+        self.plugin_factories: Dict[str, type] = {}
+        for mod_name in self._plugin_modules:
             try:
                 mod = importlib.import_module(mod_name)
-                # instantiate first class found with a name matching expected pattern
-                for attr in dir(mod):
-                    cls = getattr(mod, attr)
-                    try:
-                        # heuristic: class has get_name and scan methods
-                        if callable(cls) and hasattr(cls, '__init__'):
-                            inst = cls()  # type: ignore[misc]
-                            if hasattr(inst, 'get_name') and hasattr(inst, 'scan'):
-                                self.plugins[inst.get_name()] = inst
-                                break
-                    except Exception:
-                        # ignore instantiation errors for plugins
-                        continue
             except Exception:
-                # ignore missing modules
                 continue
+
+            for attr in dir(mod):
+                cls = getattr(mod, attr)
+                try:
+                    # Identify classes that can be used as plugins by checking
+                    # presence of expected attributes on the class.
+                    if isinstance(cls, type) and hasattr(cls, '__init__'):
+                        # create a factory key based on module + class name
+                        factory_key = f"{mod_name}:{cls.__name__}"
+                        self.plugin_factories[factory_key] = cls
+                except Exception:
+                    continue
+
+    def _instantiate_plugin_from_module(self, mod_name: str):
+        """Try to import the module and instantiate the first suitable plugin class.
+
+        Returns the instance or None on failure.
+        """
+        try:
+            mod = importlib.import_module(mod_name)
+        except Exception:
+            return None
+
+        for attr in dir(mod):
+            cls = getattr(mod, attr)
+            try:
+                if callable(cls) and hasattr(cls, '__init__'):
+                    inst = cls()  # type: ignore[misc]
+                    if hasattr(inst, 'get_name') and hasattr(inst, 'scan'):
+                        return inst
+            except Exception:
+                # ignore instantiation errors for plugins
+                continue
+
+        return None
+
+    def list_available_factories(self) -> list:
+        """Return a list of available factory keys for discoverable plugins.
+
+        Factory keys have the form '<module>:<ClassName>' and can be passed to
+        `create_plugin_from_factory` to create an instance.
+        """
+        return list(self.plugin_factories.keys())
+
+    def create_plugin_from_factory(self, factory_key: str, *args, **kwargs):
+        """Instantiate a plugin from a factory key and register it.
+
+        Returns the instantiated plugin instance or raises KeyError if the
+        factory_key is unknown.
+        """
+        cls = self.plugin_factories.get(factory_key)
+        if cls is None:
+            raise KeyError(f"Unknown plugin factory: {factory_key}")
+        inst = cls(*args, **kwargs)  # type: ignore[misc]
+        # register under the plugin's get_name() so it appears in `self.plugins`
+        try:
+            name = inst.get_name()
+        except Exception:
+            # If instance cannot provide a name, use the factory key as fallback
+            name = factory_key
+        self.plugins[name] = inst
+        return inst
 
     def scan_all(self, safety_filter: Optional[SafetyLevel] = None) -> Dict[str, List[CleanableItem]]:
         results: Dict[str, List[CleanableItem]] = {}
+        # Ensure we have instantiated plugin instances for known modules and for
+        # any plugins that were injected (e.g. by the CLI). We prefer injected
+        # instances to module-instantiated ones.
+        for mod_name in getattr(self, '_plugin_modules', []):
+            # try to instantiate and register plugin if not already present
+            try:
+                inst = self._instantiate_plugin_from_module(mod_name)
+                if inst is not None:
+                    name = inst.get_name()
+                    # don't overwrite an injected plugin instance
+                    if name not in self.plugins:
+                        self.plugins[name] = inst
+            except Exception:
+                # ignore import/instantiation errors
+                continue
+
         # If we have discovered plugins, use them.
         if self.plugins:
             for name, plugin in self.plugins.items():

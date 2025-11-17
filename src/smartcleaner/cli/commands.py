@@ -312,8 +312,13 @@ def clean_tmp(base_dir: Optional[str], dry_run: bool, yes: bool):
 def clean_kernels(keep_kernels: Optional[int], dry_run: bool, yes: bool, db: Optional[str]):
     """Clean old kernels using apt (purge + autoremove)."""
     from smartcleaner.plugins.kernels import KernelCleaner
+    from smartcleaner.config import get_keep_kernels
     from smartcleaner.managers.cleaner_manager import CleanerManager
     from pathlib import Path
+
+    # If the CLI flag wasn't provided, consult persistent config/defaults
+    if keep_kernels is None:
+        keep_kernels = get_keep_kernels()
 
     # Instantiate with requested keep count when provided
     plugin = KernelCleaner(keep=keep_kernels)
