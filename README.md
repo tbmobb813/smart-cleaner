@@ -115,3 +115,35 @@ To allow automated sudo runs, set `SMARTCLEANER_ALLOW_SUDO=1` in the environment
 ## Scheduling GC (backups cleanup)
 
 Use the `gc` command to prune backups. See `docs/GC.md` for systemd and cron examples.
+
+## Configuration
+
+Smart Cleaner reads configuration from the XDG configuration directory. By default
+
+the config file is expected at:
+
+  $XDG_CONFIG_HOME/smartcleaner/config.toml
+
+
+If `XDG_CONFIG_HOME` is not set, the fallback path is:
+
+  ~/.config/smartcleaner/config.toml
+
+Supported configuration keys (TOML):
+
+- `keep_kernels` (integer): default number of recent kernels to keep when
+  running `clean kernels` (CLI flags override this value).
+- `db_path` (string): default path to the sqlite DB used for undo/logging.
+
+Environment variables override config values:
+
+- `SMARTCLEANER_KEEP_KERNELS` overrides `keep_kernels`.
+- `SMARTCLEANER_DB_PATH` overrides `db_path`.
+
+The CLI also accepts runtime flags which take precedence over both config and
+environment variables. Example:
+
+```bash
+smartcleaner clean kernels --keep-kernels 3 --yes
+```
+

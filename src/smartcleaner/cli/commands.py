@@ -5,6 +5,7 @@ from typing import Optional
 from pathlib import Path
 from smartcleaner.db.operations import DatabaseManager
 from smartcleaner.managers.undo_manager import UndoManager
+import importlib
 
 
 def _human_size(num: float) -> str:
@@ -353,3 +354,56 @@ def clean_kernels(keep_kernels: Optional[int], dry_run: bool, yes: bool, db: Opt
             click.echo(f"Cleaned {cleaned} items, freed {_human_size(freed)}")
     else:
         click.echo(f"Errors: {res.get('errors')}")
+
+
+@cli.group('plugins')
+def plugins_group():
+    """Plugin discovery and metadata commands"""
+    pass
+
+
+@plugins_group.command('list')
+@click.option('--brief', is_flag=True, help='Show brief output')
+def plugins_list(brief: bool):
+    """List available plugin factories and basic metadata."""
+    from smartcleaner.managers.cleaner_manager import CleanerManager
+
+    mgr = CleanerManager()
+    factories = mgr.list_available_factories()
+    if not factories:
+        click.echo('No plugins discovered')
+        return
+
+    for key in factories:
+        # key format: module:ClassName
+        name = ''
+        desc = ''
+        try:
+            cls = mgr.plugin_factories.get(key)
+            module_name, class_name = key.split(':', 1)
+            if cls is None:
+                mod = importlib.import_module(module_name)
+                cls = getattr(mod, class_name, None)
+            # check for module-level PLUGIN_INFO
+            try:
+                mod = importlib.import_module(module_name)
+                info = getattr(mod, 'PLUGIN_INFO', None)
+                if isinstance(info, dict):
+                    name = info.get('name', '')
+                    desc = info.get('description', '')
+            except Exception:
+                pass
+
+            if not name and cls is not None:
+                name = getattr(cls, '__name__', '')
+            if not desc and cls is not None:
+                desc = (cls.__doc__ or '').strip()
+
+        except Exception:
+            name = key
+            desc = ''
+
+        if brief:
+            click.echo(f"{key}: {name}")
+        else:
+            click.echo(f"{key}\n  name: {name}\n  description: {desc}\n")

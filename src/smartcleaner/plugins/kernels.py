@@ -5,6 +5,11 @@ from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
 
 
+PLUGIN_INFO = {
+    'name': 'Old Kernels Cleaner',
+    'description': 'Detects installed linux-image packages and offers to purge older kernels while keeping the running and recent ones.',
+}
+
 def version_key(v: str) -> Tuple[int, ...]:
     """Return a numeric key for a version-like string by extracting integer groups.
 
@@ -22,6 +27,7 @@ class KernelCleaner:
     def __init__(self, keep: int | None = None):
         # allow instance-level override; fall back to class default
         self.kernels_to_keep = int(keep) if keep is not None else self.KERNELS_TO_KEEP
+
 
     def get_name(self) -> str:
         return "Old Kernels"
