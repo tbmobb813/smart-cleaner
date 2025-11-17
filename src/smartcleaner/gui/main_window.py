@@ -1,17 +1,41 @@
 import sys
+import importlib
+from typing import TYPE_CHECKING
 try:
-    from PyQt6.QtWidgets import (
-        QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-        QListWidget, QTableWidget, QTableWidgetItem, QPushButton, QStatusBar
-    )
-    from PyQt6.QtCore import Qt
+    qt_widgets = importlib.import_module("PyQt6.QtWidgets")
+    QApplication = qt_widgets.QApplication
+    QMainWindow = qt_widgets.QMainWindow
+    QWidget = qt_widgets.QWidget
+    QHBoxLayout = qt_widgets.QHBoxLayout
+    QVBoxLayout = qt_widgets.QVBoxLayout
+    QListWidget = qt_widgets.QListWidget
+    QTableWidget = qt_widgets.QTableWidget
+    QTableWidgetItem = qt_widgets.QTableWidgetItem
+    QPushButton = qt_widgets.QPushButton
+    QStatusBar = qt_widgets.QStatusBar
+
+    qt_core = importlib.import_module("PyQt6.QtCore")
+    Qt = qt_core.Qt
 except Exception:
     # PyQt6 is optional for running tests; avoid import errors during tests
-    QApplication = QMainWindow = QWidget = object
+    # Provide lightweight placeholders so the module can be imported and tested
+    class _Placeholder:
+        def __init__(self, *args, **kwargs):
+            pass
+    QApplication = QMainWindow = QWidget = _Placeholder
+    QHBoxLayout = QVBoxLayout = QListWidget = QTableWidget = QTableWidgetItem = QPushButton = QStatusBar = _Placeholder
+    Qt = None
+
+# Provide a typing-friendly alias for the base QMainWindow so mypy has a stable
+# symbol to check against even when PyQt6 isn't installed at runtime.
+if TYPE_CHECKING:
+    from PyQt6.QtWidgets import QMainWindow as _QMainWindow
+else:
+    _QMainWindow = QMainWindow
 
 from ..managers.cleaner_manager import CleanerManager
 
-class MainWindow(QMainWindow):
+class MainWindow(_QMainWindow):
     """Minimal main window for the Smart Cleaner GUI skeleton."""
 
     def __init__(self):
@@ -126,7 +150,7 @@ class MainWindow(QMainWindow):
 
 def run():
     # If PyQt6 isn't available, print a helpful message
-    if not ("PyQt6" in globals()):
+    if "PyQt6" not in globals():
         print("PyQt6 is not installed. Install PyQt6 to run the GUI: pip install PyQt6")
         return
     app = QApplication(sys.argv)

@@ -1,8 +1,12 @@
 [project]
 name = "smart-cleaner"
-version = "0.1.0"
+version = "0.1.1"
 description = "Smart Cleaner - GUI skeleton (PyQt6)"
 requires-python = ">=3.10"
+
+[project.scripts]
+smartcleaner = "smartcleaner.cli.commands:cli"
+smartcleaner-cli = "smartcleaner.cli.commands:cli"
 
 [tool.setuptools.packages.find]
 where = ["src"]

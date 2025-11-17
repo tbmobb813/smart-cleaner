@@ -60,17 +60,6 @@ class CleanerManager:
 
         return filtered
 
-        if safety_filter is None:
-            return items
-
-        # Filter items by safety level (include items with safety <= filter level)
-        filtered: Dict[str, List[CleanableItem]] = {}
-        for plugin, plugin_items in items.items():
-            filtered_items = [it for it in plugin_items if it.safety <= safety_filter]
-            if filtered_items:
-                filtered[plugin] = filtered_items
-        return filtered
-
     def clean_selected(self, items_by_plugin: Dict[str, List[CleanableItem]], dry_run: bool = False):
         result = {}
         for plugin, items in items_by_plugin.items():

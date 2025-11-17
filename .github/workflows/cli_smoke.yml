@@ -1,0 +1,7 @@
+name: disabled-cli-smoke
+
+on: []
+
+# This workflow was replaced by the consolidated `ci.yml` workflow.
+# Keeping an inert file avoids accidental re-enablement; it is intentionally
+# disabled (`on: []`). Remove this file if you prefer to delete it entirely.

@@ -1,3 +1,4 @@
 # Optional runtime requirements for the full app (not needed to run tests)
 PyQt6>=6.5
 rich>=13.0
+click>=8.0
