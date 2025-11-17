@@ -6,6 +6,7 @@ from pathlib import Path
 from smartcleaner.db.operations import DatabaseManager
 from smartcleaner.managers.undo_manager import UndoManager
 import importlib
+import inspect
 
 
 def _human_size(num: float) -> str:
@@ -356,6 +357,63 @@ def clean_kernels(keep_kernels: Optional[int], dry_run: bool, yes: bool, db: Opt
         click.echo(f"Errors: {res.get('errors')}")
 
 
+@cli.group('config')
+def config_group():
+    """Manage persistent configuration (XDG config)."""
+    pass
+
+
+@config_group.command('set')
+@click.argument('key', type=str)
+@click.argument('value', type=str)
+@click.option('--yes', is_flag=True, help='Do not ask for confirmation')
+def config_set(key: str, value: str, yes: bool):
+    """Set a config key. Supported keys: keep_kernels, db_path"""
+    from smartcleaner.config import set_config_value, get_allowed_keys, _config_file_path
+
+    allowed = get_allowed_keys()
+    if key not in allowed:
+        click.echo(f'Unsupported config key: {key}')
+        return
+
+    if not yes:
+        click.echo(f'About to set {key} in {_config_file_path()} to {value}')
+        if not click.confirm('Proceed?'):
+            click.echo('Aborted.')
+            return
+
+    ok = set_config_value(key, value)
+    if ok:
+        click.echo(f'Set {key} = {value}')
+    else:
+        click.echo('Failed to set config (validation or IO error)')
+
+
+@config_group.command('get')
+@click.argument('key', type=str)
+@click.option('--defaults', is_flag=True, help='Show environment/config/code defaults for the key')
+def config_get(key: str):
+    from smartcleaner.config import load_config, get_effective_value
+
+    if '--defaults' in click.get_current_context().args:
+        # Print effective values (env, config, code default)
+        eff = get_effective_value(key)
+        if not eff:
+            click.echo('')
+            return
+        click.echo(f"env: {eff.get('env')}")
+        click.echo(f"config: {eff.get('config')}")
+        click.echo(f"code_default: {eff.get('code_default')}")
+        click.echo(f"effective: {eff.get('effective')}")
+        return
+
+    cfg = load_config() or {}
+    if key in cfg:
+        click.echo(cfg[key])
+    else:
+        click.echo('')
+
+
 @cli.group('plugins')
 def plugins_group():
     """Plugin discovery and metadata commands"""
@@ -407,3 +465,55 @@ def plugins_list(brief: bool):
             click.echo(f"{key}: {name}")
         else:
             click.echo(f"{key}\n  name: {name}\n  description: {desc}\n")
+
+
+@plugins_group.command('show')
+@click.argument('factory_key', type=str)
+def plugins_show(factory_key: str):
+    """Show detailed metadata for a plugin factory key."""
+    from smartcleaner.managers.cleaner_manager import CleanerManager
+
+    mgr = CleanerManager()
+    factories = mgr.list_available_factories()
+    if factory_key not in factories:
+        click.echo(f"Unknown factory: {factory_key}")
+        return
+
+    cls = mgr.plugin_factories.get(factory_key)
+    module_name, class_name = factory_key.split(':', 1)
+    try:
+        mod = importlib.import_module(module_name)
+    except Exception:
+        mod = None
+
+    info = None
+    if mod is not None:
+        info = getattr(mod, 'PLUGIN_INFO', None)
+
+    if info and isinstance(info, dict):
+        click.echo(f"PLUGIN_INFO:")
+        for k, v in info.items():
+            click.echo(f"  {k}: {v}")
+
+    if cls is None and mod is not None:
+        cls = getattr(mod, class_name, None)
+
+    if cls is None:
+        click.echo('No class found for factory')
+        return
+
+    click.echo(f"Class: {cls.__module__}.{cls.__name__}")
+    doc = (cls.__doc__ or '').strip()
+    if doc:
+        click.echo(f"Doc: {doc}")
+
+    # show constructor signature (excluding self)
+    try:
+        sig = inspect.signature(cls.__init__)
+        params = [p for p in sig.parameters.values() if p.name != 'self']
+        click.echo('Constructor:')
+        for p in params:
+            click.echo(f"  {p}")
+    except Exception:
+        pass
+

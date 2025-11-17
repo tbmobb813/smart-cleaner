@@ -64,3 +64,9 @@ class BrowserCacheCleaner:
                 result['errors'].append(str(e))
                 result['success'] = False
         return result
+
+
+PLUGIN_INFO = {
+    'name': 'Browser Cache Cleaner',
+    'description': 'Scans common browser cache directories (Chrome/Chromium/Firefox) and removes cached files and empty dirs.',
+}

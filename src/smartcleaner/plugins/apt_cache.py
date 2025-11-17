@@ -48,3 +48,9 @@ class APTCacheCleaner:
             result['errors'].append(str(e))
 
         return result
+
+
+PLUGIN_INFO = {
+    'name': 'APT Package Cache Cleaner',
+    'description': 'Scans and cleans APT package cache (deb files and partial downloads).',
+}

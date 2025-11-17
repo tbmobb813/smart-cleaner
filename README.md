@@ -147,3 +147,21 @@ environment variables. Example:
 smartcleaner clean kernels --keep-kernels 3 --yes
 ```
 
+## Example output: plugins show
+
+The `plugins show <module:ClassName>` command prints available metadata and the
+constructor signature. Example output (abridged):
+
+```
+PLUGIN_INFO:
+  name: APT Package Cache Cleaner
+  description: Scans and cleans APT package cache (deb files and partial downloads).
+Class: smartcleaner.plugins.apt_cache.APTCacheCleaner
+Doc: Cleans APT package cache located at /var/cache/apt/archives by default.
+Constructor:
+  cache_dir: pathlib.Path = PosixPath('/var/cache/apt/archives')
+```
+
+This helps discover which plugin factories are available and what constructor
+arguments they accept.
+
