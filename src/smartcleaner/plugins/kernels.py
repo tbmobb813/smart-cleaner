@@ -48,7 +48,7 @@ class KernelCleaner:
                         'package': package_name,
                         'version': kernel_version,
                         'size': size_bytes,
-                        'is_current': kernel_version in current
+                        'is_current': kernel_version == current
                     })
 
         return kernels
@@ -57,24 +57,25 @@ class KernelCleaner:
         items: List[CleanableItem] = []
         try:
             kernels = self.get_installed_kernels()
-            # Sort by version (newest first) using packaging.version
-            # Sort by numeric components extracted from the version string (best-effort)
+            # Sort by version (newest first) using numeric components extracted
             def _numeric_key(v: str) -> Tuple[int, ...]:
                 nums = re.findall(r"\d+", v)
                 return tuple(int(n) for n in nums)
 
             kernels.sort(key=lambda k: _numeric_key(k['version']), reverse=True)
 
-            kept = 0
+            # Mark the top KERNELS_TO_KEEP as kept; always keep the current kernel
+            kept_count = 0
+            for i, kernel in enumerate(kernels):
+                kernel['keep'] = False
+                if i < self.KERNELS_TO_KEEP:
+                    kernel['keep'] = True
+                    kept_count += 1
+
+            # Ensure current kernel is always kept
             for kernel in kernels:
-                if kernel['is_current']:
+                if kernel.get('is_current'):
                     kernel['keep'] = True
-                    kept += 1
-                elif kept < self.KERNELS_TO_KEEP:
-                    kernel['keep'] = True
-                    kept += 1
-                else:
-                    kernel['keep'] = False
 
             for kernel in kernels:
                 if not kernel.get('keep', False):
