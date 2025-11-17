@@ -146,3 +146,159 @@ def gc_cmd(db: Optional[str], keep_last: Optional[int], older_than_days: Optiona
 
 def main():
     cli()
+
+
+@cli.group('clean')
+def clean_group():
+    """Cleaning commands (preview and remove)"""
+    pass
+
+
+@clean_group.command('apt-cache')
+@click.option('--cache-dir', default=None, help='Path to APT cache dir (for testing)')
+@click.option('--dry-run', is_flag=True, help='Show what would be deleted')
+@click.option('--yes', is_flag=True, help='Do not ask for confirmation')
+@click.option('--db', default=None, help='Path to sqlite DB (optional)')
+def clean_apt_cache(cache_dir: Optional[str], dry_run: bool, yes: bool, db: Optional[str]):
+    """Clean APT package cache (uses apt-get clean when not dry-run)."""
+    from smartcleaner.plugins.apt_cache import APTCacheCleaner
+    from pathlib import Path
+    from smartcleaner.managers.cleaner_manager import CleanerManager
+
+    cache_path = Path(cache_dir) if cache_dir else Path('/var/cache/apt/archives')
+    plugin = APTCacheCleaner(cache_dir=cache_path)
+
+    # Use CleanerManager so cleaning goes through the centralized flow and is logged
+    mgr = CleanerManager()
+    # Ensure the manager uses our plugin instance (respecting cache_dir override)
+    mgr.plugins[plugin.get_name()] = plugin
+
+    items = plugin.scan()
+    total = sum(i.size for i in items)
+    click.echo(f"Found {len(items)} items totaling {_human_size(total)} in {cache_path}")
+    for it in items:
+        click.echo(f"  - {it.path} ({_human_size(it.size)}) {it.description}")
+
+    if dry_run:
+        click.echo('Dry-run: no changes will be made.')
+        return
+
+    if not yes:
+        if not click.confirm(f'Proceed to clean APT cache at {cache_path}?'):
+            click.echo('Aborted.')
+            return
+
+    results = mgr.clean_selected({plugin.get_name(): items}, dry_run=False)
+    res = results.get(plugin.get_name(), {})
+    if res.get('success'):
+        cleaned = res.get('cleaned_count', 0)
+        freed = res.get('total_size', 0)
+        op_id = res.get('operation_id')
+        if op_id:
+            click.echo(f"Cleaned {cleaned} items, freed {_human_size(freed)} (operation id: {op_id})")
+        else:
+            click.echo(f"Cleaned {cleaned} items, freed {_human_size(freed)}")
+    else:
+        click.echo(f"Errors: {res.get('errors')}")
+
+
+@clean_group.command('browser-cache')
+@click.option('--base-dir', default=None, help='Base cache dir to scan (for testing)')
+@click.option('--dry-run', is_flag=True, help='Show what would be deleted')
+@click.option('--yes', is_flag=True, help='Do not ask for confirmation')
+def clean_browser_cache(base_dir: Optional[str], dry_run: bool, yes: bool):
+    from smartcleaner.plugins.browser_cache import BrowserCacheCleaner
+    from pathlib import Path
+    from smartcleaner.managers.cleaner_manager import CleanerManager
+
+    base = [Path(base_dir)] if base_dir else None
+    plugin = BrowserCacheCleaner(base_dirs=base)
+    mgr = CleanerManager()
+    mgr.plugins[plugin.get_name()] = plugin
+
+    items = plugin.scan()
+    total = sum(i.size for i in items)
+    click.echo(f"Found {len(items)} items totaling {_human_size(total)} in browser caches")
+    if dry_run:
+        click.echo('Dry-run: no changes will be made.')
+        return
+
+    if not yes:
+        if not click.confirm('Proceed to clean browser caches?'):
+            click.echo('Aborted.')
+            return
+
+    results = mgr.clean_selected({plugin.get_name(): items}, dry_run=False)
+    res = results.get(plugin.get_name(), {})
+    if res.get('success'):
+        click.echo(f"Cleaned {res.get('cleaned_count',0)} items, freed {_human_size(res.get('total_size',0))}")
+    else:
+        click.echo(f"Errors: {res.get('errors')}")
+
+
+@clean_group.command('thumbnails')
+@click.option('--cache-dir', default=None, help='Thumbnail cache dir (for testing)')
+@click.option('--dry-run', is_flag=True, help='Show what would be deleted')
+@click.option('--yes', is_flag=True, help='Do not ask for confirmation')
+def clean_thumbnails(cache_dir: Optional[str], dry_run: bool, yes: bool):
+    from smartcleaner.plugins.thumbnails import ThumbnailCacheCleaner
+    from pathlib import Path
+    from smartcleaner.managers.cleaner_manager import CleanerManager
+
+    cache_path = Path(cache_dir) if cache_dir else None
+    plugin = ThumbnailCacheCleaner(cache_dir=cache_path)
+    mgr = CleanerManager()
+    mgr.plugins[plugin.get_name()] = plugin
+
+    items = plugin.scan()
+    total = sum(i.size for i in items)
+    click.echo(f"Found {len(items)} items totaling {_human_size(total)} in thumbnails cache")
+    if dry_run:
+        click.echo('Dry-run: no changes will be made.')
+        return
+
+    if not yes:
+        if not click.confirm('Proceed to clean thumbnails cache?'):
+            click.echo('Aborted.')
+            return
+
+    results = mgr.clean_selected({plugin.get_name(): items}, dry_run=False)
+    res = results.get(plugin.get_name(), {})
+    if res.get('success'):
+        click.echo(f"Cleaned {res.get('cleaned_count',0)} items, freed {_human_size(res.get('total_size',0))}")
+    else:
+        click.echo(f"Errors: {res.get('errors')}")
+
+
+@clean_group.command('tmp')
+@click.option('--base-dir', default=None, help='Base tmp dir to scan (for testing)')
+@click.option('--dry-run', is_flag=True, help='Show what would be deleted')
+@click.option('--yes', is_flag=True, help='Do not ask for confirmation')
+def clean_tmp(base_dir: Optional[str], dry_run: bool, yes: bool):
+    from smartcleaner.plugins.tmp_cleaner import TmpCleaner
+    from pathlib import Path
+    from smartcleaner.managers.cleaner_manager import CleanerManager
+
+    base = Path(base_dir) if base_dir else None
+    plugin = TmpCleaner(base_dir=base)
+    mgr = CleanerManager()
+    mgr.plugins[plugin.get_name()] = plugin
+
+    items = plugin.scan()
+    total = sum(i.size for i in items)
+    click.echo(f"Found {len(items)} items totaling {_human_size(total)} in {base or '/tmp'}")
+    if dry_run:
+        click.echo('Dry-run: no changes will be made.')
+        return
+
+    if not yes:
+        if not click.confirm(f'Proceed to clean temporary files in {base or "/tmp"}?'):
+            click.echo('Aborted.')
+            return
+
+    results = mgr.clean_selected({plugin.get_name(): items}, dry_run=False)
+    res = results.get(plugin.get_name(), {})
+    if res.get('success'):
+        click.echo(f"Cleaned {res.get('cleaned_count',0)} items, freed {_human_size(res.get('total_size',0))}")
+    else:
+        click.echo(f"Errors: {res.get('errors')}")
