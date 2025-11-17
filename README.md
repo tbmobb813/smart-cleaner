@@ -187,3 +187,40 @@ Constructor:
   cache_dir: typing.Optional[pathlib.Path] = None
 ```
 
+## Per-plugin configuration
+
+Smart Cleaner supports per-plugin persistent configuration stored under the
+XDG config file (`$XDG_CONFIG_HOME/smartcleaner/config.toml`). Plugin-specific
+settings are stored under the `plugins` table using the plugin module name as
+the table key. Example:
+
+```toml
+[plugins."smartcleaner.plugins.kernels"]
+keep_kernels = 3
+```
+
+Use the `config plugin` CLI to manage per-plugin values. Values are validated
+against each plugin's `PLUGIN_INFO['config']` schema before being written.
+
+Examples:
+
+```bash
+# Set the keep_kernels value for the kernels plugin (validated)
+smartcleaner config plugin set smartcleaner.plugins.kernels keep_kernels 3 --yes
+
+# Read a plugin-scoped value
+smartcleaner config plugin get smartcleaner.plugins.kernels keep_kernels
+
+# Get it as JSON for programmatic consumption
+smartcleaner config plugin get smartcleaner.plugins.kernels keep_kernels --json
+```
+
+Notes:
+- The CLI will validate values (min/max/choices/type) using the plugin's
+  declared schema and will refuse invalid inputs.
+- For TOML writing we prefer `tomli-w` (installed via `requirements.txt`) to
+  ensure round-trip friendly, deterministic output. If `tomli-w` is not
+  available the code falls back to a safe scalar TOML writer that still
+  preserves plugin tables and basic array types.
+
+
