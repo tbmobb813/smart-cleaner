@@ -105,9 +105,10 @@ class CleanerManager:
                 if safety_filter is not None:
                     items = [item for item in items if item.safety <= safety_filter]
 
-                # Only include plugins that found items
+                # Include plugin in results even if no items were found; callers
+                # may expect a mapping of all discovered plugins to their items.
+                results[plugin.get_name()] = items
                 if items:
-                    results[plugin.get_name()] = items
                     total_size = sum(item.size for item in items)
                     logger.info(
                         f"Plugin '{plugin.get_name()}' found {len(items)} items "
