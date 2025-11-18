@@ -9,11 +9,8 @@ The server renders a simple form (derived from the plugin's JSON schema) at
 """
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs
-import sys
 import argparse
 import html
-from typing import Dict
-
 from smartcleaner.utils.json_schema import plugin_info_to_json_schema
 from smartcleaner.config import set_plugin_config
 
