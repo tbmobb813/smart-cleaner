@@ -5,7 +5,7 @@ from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
 
 
-PLUGIN_INFO = {
+PLUGIN_INFO: Dict[str, Any] = {
     'name': 'Old Kernels Cleaner',
     'description': 'Detects installed linux-image packages and offers to purge older kernels while keeping the running and recent ones.',
 }

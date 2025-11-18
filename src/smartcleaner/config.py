@@ -170,6 +170,7 @@ def set_config_value(key: str, value: Any) -> bool:
         return False
     expected = _ALLOWED_KEYS[key]
     try:
+        cast_v: Any
         if expected is int:
             cast_v = int(value)
         elif expected is str:
@@ -213,6 +214,7 @@ def get_effective_value(key: str, code_default: Any = None) -> dict[str, Any] | 
             pass
 
     # compute effective precedence env > config > code_default
+    effective: Any
     if env is not None:
         try:
             effective = int(env) if _ALLOWED_KEYS[key] is int else env

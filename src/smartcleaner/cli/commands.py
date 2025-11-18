@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import click
-from typing import Optional
+from typing import Optional, Any
 from pathlib import Path
 from smartcleaner.db.operations import DatabaseManager
 from smartcleaner.managers.undo_manager import UndoManager
@@ -549,7 +549,7 @@ def plugins_show(factory_key: str, as_json: bool):
         click.echo(f"Unknown factory: {factory_key}")
         return
 
-    cls = mgr.plugin_factories.get(factory_key)
+    cls: Any = mgr.plugin_factories.get(factory_key)
     module_name, class_name = factory_key.split(':', 1)
     try:
         mod = importlib.import_module(module_name)
@@ -585,14 +585,17 @@ def plugins_show(factory_key: str, as_json: bool):
             out['constructor'] = info.get('constructor')
         else:
             try:
-                sig = inspect.signature(cls.__init__)
-                params = [p for p in sig.parameters.values() if p.name != 'self']
-                out['constructor'] = [{
-                    'name': p.name,
-                    'kind': str(p.kind),
-                    'default': None if p.default is inspect._empty else repr(p.default),
-                    'annotation': None if p.annotation is inspect._empty else str(p.annotation),
-                } for p in params]
+                if isinstance(cls, type):
+                    sig = inspect.signature(cls)
+                    params = [p for p in sig.parameters.values() if p.name != 'self']
+                    out['constructor'] = [{
+                        'name': p.name,
+                        'kind': str(p.kind),
+                        'default': None if p.default is inspect._empty else repr(p.default),
+                        'annotation': None if p.annotation is inspect._empty else str(p.annotation),
+                    } for p in params]
+                else:
+                    out['constructor'] = None
             except Exception:
                 out['constructor'] = None
 
@@ -613,11 +616,12 @@ def plugins_show(factory_key: str, as_json: bool):
 
     # show constructor signature (excluding self)
     try:
-        sig = inspect.signature(cls.__init__)
-        params = [p for p in sig.parameters.values() if p.name != 'self']
-        click.echo('Constructor:')
-        for p in params:
-            click.echo(f"  {p}")
+        if isinstance(cls, type):
+            sig = inspect.signature(cls)
+            params = [p for p in sig.parameters.values() if p.name != 'self']
+            click.echo('Constructor:')
+            for p in params:
+                click.echo(f"  {p}")
     except Exception:
         pass
 
