@@ -1,7 +1,15 @@
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Type
 from enum import IntEnum
-import importlib
+import logging
+
+from .plugin_registry import PluginRegistry, get_default_registry
+from .safety_validator import SafetyValidator
+from .undo_manager import UndoManager
+from ..db.operations import DatabaseManager
+from ..plugins.base import BasePlugin
+
+logger = logging.getLogger(__name__)
 
 
 class SafetyLevel(IntEnum):
@@ -29,266 +37,345 @@ class CleanableItem:
 
 
 class CleanerManager:
-    """A small stub of the real CleanerManager used by the GUI skeleton.
+    """Orchestrates scanning and cleaning operations across all registered plugins.
 
-    Replace this with the full implementation from your core when wiring the GUI.
+    The CleanerManager uses a PluginRegistry to discover available plugins,
+    SafetyValidator to enforce safety policies, and UndoManager to support
+    undo/restore operations.
     """
 
-    def __init__(self):
-        # Keep a mapping of instantiated plugin name -> instance. CLI or callers
-        # may inject plugin instances into this dict (e.g. to override config).
-        self.plugins: Dict[str, Any] = {}
+    def __init__(
+        self,
+        plugin_registry: Optional[PluginRegistry] = None,
+        safety_validator: Optional[SafetyValidator] = None,
+        undo_manager: Optional[UndoManager] = None,
+        db_manager: Optional[DatabaseManager] = None
+    ):
+        """Initialize the CleanerManager.
 
-        # Do not instantiate plugins eagerly here. Instead, keep a list of known
-        # plugin module paths and instantiate lazily when scan_all() is called.
-        # This prevents double-instantiation when callers (like the CLI) construct
-        # and inject plugin instances for a run.
-        self._plugin_modules = [
-            'smartcleaner.plugins.apt_cache',
-            'smartcleaner.plugins.kernels',
-            'smartcleaner.plugins.browser_cache',
-            'smartcleaner.plugins.thumbnails',
-            'smartcleaner.plugins.tmp_cleaner',
-        ]
-
-        # Build a registry of plugin factory callables (class objects) keyed by
-        # a stable factory key. This allows callers to discover available
-        # plugin implementations without instantiating them, and to create
-        # instances with custom constructor args.
-        self.plugin_factories: Dict[str, type] = {}
-        for mod_name in self._plugin_modules:
-            try:
-                mod = importlib.import_module(mod_name)
-            except Exception:
-                continue
-
-            for attr in dir(mod):
-                cls = getattr(mod, attr)
+        Args:
+            plugin_registry: Registry of plugins (uses default if None).
+            safety_validator: Safety validator (creates default if None).
+            undo_manager: Undo manager for backup/restore (creates default if None).
+            db_manager: Database manager (creates default if None).
+        """
+        self.registry = plugin_registry or get_default_registry()
+        # Mirror of plugin instances for easy injection and testability
+        self.plugins: Dict[str, BasePlugin] = {p.get_name(): p for p in self.registry.get_all_plugins()}
+        # mapping of factory keys (module:Class) to class objects when discoverable
+        self.plugin_factories: Dict[str, Optional[Type[BasePlugin]]] = {}
+        try:
+            # populate plugin_factories lazily from available factories
+            for fk in self.list_available_factories():
+                module_name, class_name = fk.split(':', 1)
                 try:
-                    # Identify classes that can be used as plugins by checking
-                    # presence of expected attributes on the class.
-                    if isinstance(cls, type) and hasattr(cls, '__init__'):
-                        # create a factory key based on module + class name
-                        factory_key = f"{mod_name}:{cls.__name__}"
-                        self.plugin_factories[factory_key] = cls
+                    mod = __import__(module_name, fromlist=[class_name])
+                    cls = getattr(mod, class_name, None)
                 except Exception:
-                    continue
-
-    def _instantiate_plugin_from_module(self, mod_name: str):
-        """Try to import the module and instantiate the first suitable plugin class.
-
-        Returns the instance or None on failure.
-        """
-        try:
-            mod = importlib.import_module(mod_name)
+                    cls = None
+                self.plugin_factories[fk] = cls
         except Exception:
-            return None
-
-        for attr in dir(mod):
-            cls = getattr(mod, attr)
-            try:
-                if callable(cls) and hasattr(cls, '__init__'):
-                    inst = cls()  # type: ignore[misc]
-                    if hasattr(inst, 'get_name') and hasattr(inst, 'scan'):
-                        return inst
-            except Exception:
-                # ignore instantiation errors for plugins
-                continue
-
-        return None
-
-    def list_available_factories(self) -> list:
-        """Return a list of available factory keys for discoverable plugins.
-
-        Factory keys have the form '<module>:<ClassName>' and can be passed to
-        `create_plugin_from_factory` to create an instance.
-        """
-        return list(self.plugin_factories.keys())
-
-    def get_factories_metadata(self) -> Dict[str, Dict[str, Any]]:
-        """Return metadata for available factories.
-
-        The returned dict maps factory_key -> metadata dict containing:
-        - module: module path
-        - class: class name
-        - class_obj: the class object (may be None)
-        - plugin_info: module-level PLUGIN_INFO if present
-        - description: a short docstring or PLUGIN_INFO description
-        """
-        out: Dict[str, Dict[str, Any]] = {}
-        for key, cls in self.plugin_factories.items():
-            module_name, class_name = key.split(':', 1)
-            meta: Dict[str, Any] = {
-                'module': module_name,
-                'class': class_name,
-                'class_obj': cls,
-                'plugin_info': None,
-                'description': '',
-            }
-            try:
-                mod = importlib.import_module(module_name)
-                info = getattr(mod, 'PLUGIN_INFO', None)
-                if isinstance(info, dict):
-                    meta['plugin_info'] = info
-                    meta['description'] = info.get('description', '')
-                else:
-                    # fallback to class docstring
-                    meta['description'] = (cls.__doc__ or '').strip()
-            except Exception:
-                # keep defaults if import fails
-                pass
-
-            out[key] = meta
-
-        return out
-
-    def create_plugin_from_factory(self, factory_key: str, *args, **kwargs):
-        """Instantiate a plugin from a factory key and register it.
-
-        Returns the instantiated plugin instance or raises KeyError if the
-        factory_key is unknown.
-        """
-        cls = self.plugin_factories.get(factory_key)
-        if cls is None:
-            raise KeyError(f"Unknown plugin factory: {factory_key}")
-        inst = cls(*args, **kwargs)  # type: ignore[misc]
-        # register under the plugin's get_name() so it appears in `self.plugins`
-        try:
-            name = inst.get_name()
-        except Exception:
-            # If instance cannot provide a name, use the factory key as fallback
-            name = factory_key
-        self.plugins[name] = inst
-        return inst
+            # non-fatal: leave mapping empty on any discovery/import errors
+            self.plugin_factories = {}
+        self.safety_validator = safety_validator or SafetyValidator()
+        self.db = db_manager or DatabaseManager()
+        self.undo_manager = undo_manager or UndoManager(db=self.db)
 
     def scan_all(self, safety_filter: Optional[SafetyLevel] = None) -> Dict[str, List[CleanableItem]]:
-        results: Dict[str, List[CleanableItem]] = {}
-        # Ensure we have instantiated plugin instances for known modules and for
-        # any plugins that were injected (e.g. by the CLI). We prefer injected
-        # instances to module-instantiated ones.
-        for mod_name in getattr(self, '_plugin_modules', []):
-            # try to instantiate and register plugin if not already present
+        """Scan all available plugins and return cleanable items.
+
+        Args:
+            safety_filter: Maximum safety level to include (None = all items).
+
+        Returns:
+            Dictionary mapping plugin names to lists of CleanableItem instances.
+        """
+        results = {}
+
+        # Prefer explicitly injected/registered plugin instances in self.plugins
+        plugin_instances = list(self.plugins.values()) if self.plugins else self.registry.get_available_plugins()
+        logger.info(f"Scanning with {len(plugin_instances)} available plugins")
+
+        for plugin in plugin_instances:
             try:
-                inst = self._instantiate_plugin_from_module(mod_name)
-                if inst is not None:
-                    name = inst.get_name()
-                    # don't overwrite an injected plugin instance
-                    if name not in self.plugins:
-                        self.plugins[name] = inst
+                logger.debug(f"Scanning plugin: {plugin.get_name()}")
+                items = plugin.scan()
+
+                # Apply safety filter if provided
+                if safety_filter is not None:
+                    items = [item for item in items if item.safety <= safety_filter]
+
+                # Include plugin in results even if no items were found; callers
+                # may expect a mapping of all discovered plugins to their items.
+                results[plugin.get_name()] = items
+                if items:
+                    total_size = sum(item.size for item in items)
+                    logger.info(
+                        f"Plugin '{plugin.get_name()}' found {len(items)} items "
+                        f"({self._format_size(total_size)})"
+                    )
+
+            except Exception as e:
+                logger.error(f"Error scanning plugin '{plugin.get_name()}': {e}")
+                # Continue with other plugins even if one fails
+
+        return results
+
+    def refresh_plugins(self) -> None:
+        """Refresh the internal `plugins` mapping from the registry."""
+        self.plugins = {p.get_name(): p for p in self.registry.get_all_plugins()}
+
+    def list_available_factories(self) -> List[str]:
+        """Return a list of available plugin factory module names (e.g., smartcleaner.plugins.kernels).
+
+        This inspects the `smartcleaner.plugins` package for .py files and returns importable module names.
+        """
+        from pathlib import Path
+        pkg_dir = Path(__file__).parent.parent / 'plugins'
+        keys: List[str] = []
+        if not pkg_dir.exists():
+            return keys
+        for p in pkg_dir.glob('*.py'):
+            if p.name in ('__init__.py', 'base.py'):
+                continue
+            module = f"smartcleaner.plugins.{p.stem}"
+            # attempt to discover the factory class name: prefer PLUGIN_INFO.class
+            try:
+                mod = __import__(module, fromlist=['PLUGIN_INFO'])
             except Exception:
-                # ignore import/instantiation errors
+                # fall back to module-only listing (no class)
                 continue
 
-        # If we have discovered plugins, use them.
-        if self.plugins:
-            for name, plugin in self.plugins.items():
+            cls_name = None
+            info = getattr(mod, 'PLUGIN_INFO', None)
+            if isinstance(info, dict):
+                cls_name = info.get('class')
+
+            # try to autodiscover first class inheriting BasePlugin if PLUGIN_INFO missing
+            if not cls_name:
                 try:
-                    items = plugin.scan()
-                    if safety_filter is not None:
-                        items = [it for it in items if it.safety <= safety_filter]
-                    # include plugin even if it finds no items to keep API stable for callers/tests
-                    results[name] = items
-                except Exception:
-                    # ignore plugin errors and continue
-                    results[name] = []
-            # If every discovered plugin returned no items, fall back to sample data
-            if all((not v) for v in results.values()):
-                # fall through to fallback sample data below
-                pass
-            else:
-                # If discovered plugins produced items that are not CleanableItem
-                # instances (tests may use simple markers), treat these as
-                # meaningful results and return them directly.
-                any_non_cleanable = False
-                for items in results.values():
-                    for it in items:
-                        if not isinstance(it, CleanableItem):
-                            any_non_cleanable = True
-                            break
-                    if any_non_cleanable:
-                        break
-                if any_non_cleanable:
-                    return results
-
-                # Otherwise, all returned items are CleanableItem. If their
-                # combined size is > 0, return the results; else fall back to
-                # sample data (useful in minimal/CI environments).
-                total_size = 0
-                for items in results.values():
-                    for it in items:
+                    for attr in dir(mod):
+                        obj = getattr(mod, attr)
                         try:
-                            total_size += int(it.size)
+                            # avoid importing BasePlugin at module import time too early
+                            from ..plugins.base import BasePlugin
+                            if isinstance(obj, type) and issubclass(obj, BasePlugin) and obj is not BasePlugin:
+                                cls_name = obj.__name__
+                                break
                         except Exception:
-                            # ignore malformed sizes
                             continue
-                if total_size > 0:
-                    return results
-                # otherwise fall through to fallback sample data
+                except Exception:
+                    cls_name = None
 
-        # Fallback sample data when plugins aren't available
-        results = {
-            "APT Package Cache": [
-                CleanableItem(path="/var/cache/apt/archives/package1.deb", size=5 * 1024 * 1024, description="Cached package: package1.deb", safety=SafetyLevel.SAFE),
-                CleanableItem(path="/var/cache/apt/archives/partial/file.part", size=200 * 1024, description="Partial download: file.part", safety=SafetyLevel.CAUTION),
-            ],
-            "Old Kernels": [
-                CleanableItem(path="linux-image-5.4.0-42-generic", size=350 * 1024 * 1024, description="Old kernel: 5.4.0-42", safety=SafetyLevel.SAFE)
-            ]
-        }
+            if cls_name:
+                keys.append(f"{module}:{cls_name}")
+        return keys
 
-        if safety_filter is None:
-            return results
+    def get_factories_metadata(self) -> Dict[str, Dict[str, Any]]:
+        """Return metadata about available plugin factories keyed by module name.
 
-        filtered = {}
-        for plugin_name, items in results.items():
-            allowed = [item for item in items if item.safety <= safety_filter]
-            if allowed:
-                filtered[plugin_name] = allowed
+        Each entry includes: module, class, class_obj (if loadable), plugin_info (module.PLUGIN_INFO or None), description.
+        """
+        out: Dict[str, Dict[str, Any]] = {}
+        for factory_key in self.list_available_factories():
+            # factory_key is module:Class
+            module_name, class_name = factory_key.split(':', 1)
+            try:
+                mod = __import__(module_name, fromlist=[class_name])
+            except Exception:
+                out[factory_key] = {'module': module_name, 'class': class_name, 'class_obj': None, 'plugin_info': None, 'description': ''}
+                continue
 
-        return filtered
+            plugin_info = getattr(mod, 'PLUGIN_INFO', None)
+            cls_obj = None
+            desc = (getattr(mod, '__doc__', '') or '').strip()
 
-    def clean_selected(self, items_by_plugin: Dict[str, List[CleanableItem]], dry_run: bool = False):
-        result = {}
-        # import here to avoid circular imports at module import time
-        from .undo_manager import UndoManager
-        undo = UndoManager()
+            # prefer PLUGIN_INFO.class when present
+            if plugin_info and isinstance(plugin_info, dict):
+                cls_name = plugin_info.get('class')
+                if cls_name and hasattr(mod, cls_name):
+                    cls_obj = getattr(mod, cls_name)
+            # otherwise try the provided class_name
+            if cls_obj is None:
+                try:
+                    if hasattr(mod, class_name):
+                        cls_obj = getattr(mod, class_name)
+                except Exception:
+                    cls_obj = None
+
+            out[factory_key] = {
+                'module': module_name,
+                'class': class_name,
+                'class_obj': cls_obj,
+                'plugin_info': plugin_info,
+                'description': desc,
+            }
+        return out
+
+    def scan_plugin(self, plugin_name: str, safety_filter: Optional[SafetyLevel] = None) -> List[CleanableItem]:
+        """Scan a specific plugin by name.
+
+        Args:
+            plugin_name: Name of the plugin to scan.
+            safety_filter: Maximum safety level to include (None = all items).
+
+        Returns:
+            List of CleanableItem instances from the plugin.
+
+        Raises:
+            ValueError: If the plugin is not found or not available.
+        """
+        plugin = self.registry.get_plugin(plugin_name)
+        if plugin is None:
+            raise ValueError(f"Plugin '{plugin_name}' not found")
+
+        if not plugin.is_available():
+            raise ValueError(f"Plugin '{plugin_name}' is not available on this system")
+
+        items = plugin.scan()
+
+        # Apply safety filter
+        if safety_filter is not None:
+            items = [item for item in items if item.safety <= safety_filter]
+
+        return items
+
+    def clean_selected(
+        self,
+        items_by_plugin: Dict[str, List[CleanableItem]],
+        dry_run: bool = False,
+        enforce_safety: bool = True
+    ) -> Dict[str, Dict]:
+        """Clean selected items across multiple plugins.
+
+        Args:
+            items_by_plugin: Dictionary mapping plugin names to lists of items to clean.
+            dry_run: If True, don't actually clean (just report what would happen).
+            enforce_safety: If True, apply safety validator checks.
+
+        Returns:
+            Dictionary mapping plugin names to result dictionaries with keys:
+                - success: bool
+                - cleaned_count: int
+                - total_size: int
+                - errors: List[str]
+                - dry_run: bool (only if dry_run=True)
+        """
+        results = {}
 
         for plugin_name, items in items_by_plugin.items():
-            plugin = self.plugins.get(plugin_name)
+            # prefer injected/plugin instances in self.plugins (tests may inject fakes)
+            plugin = self.plugins.get(plugin_name) or self.registry.get_plugin(plugin_name)
+            if plugin is None:
+                logger.error(f"Plugin '{plugin_name}' not found")
+                results[plugin_name] = {
+                    'success': False,
+                    'cleaned_count': 0,
+                    'total_size': 0,
+                    'errors': [f"Plugin '{plugin_name}' not found"]
+                }
+                continue
+
+            # Apply safety validation if enforced
+            if enforce_safety:
+                allowed_items = [item for item in items if self.safety_validator.is_allowed(item)]
+                filtered_count = len(items) - len(allowed_items)
+                if filtered_count > 0:
+                    logger.warning(
+                        f"Filtered {filtered_count} items from '{plugin_name}' "
+                        f"due to safety policy"
+                    )
+                items = allowed_items
+
+            # Skip if no items remain
+            if not items:
+                results[plugin_name] = {
+                    'success': True,
+                    'cleaned_count': 0,
+                    'total_size': 0,
+                    'errors': []
+                }
+                continue
+
+            # Perform cleaning
             try:
-                if dry_run:
-                    # Report what would be done
-                    result[plugin_name] = {
+                if dry_run and plugin.supports_dry_run():
+                    result = plugin.clean_dry_run(items)
+                elif dry_run:
+                    # Plugin doesn't support dry-run, simulate it
+                    result = {
                         'success': True,
                         'cleaned_count': len(items),
-                        'total_size': sum(i.size for i in items),
-                        'errors': []
+                        'total_size': sum(item.size for item in items),
+                        'errors': [],
+                        'dry_run': True
                     }
                 else:
-                    if plugin is None:
-                        # unknown plugin: skip
-                        result[plugin_name] = {
-                            'success': False,
-                            'cleaned_count': 0,
-                            'total_size': 0,
-                            'errors': ['unknown plugin']
-                        }
-                    else:
-                        res = plugin.clean(items)
-                        # If clean succeeded, log operation and backups where appropriate
-                        if res.get('success'):
-                            try:
-                                op_id = undo.log_operation(plugin_name, items)
-                                res['operation_id'] = op_id
-                            except Exception:
-                                pass
-                        result[plugin_name] = res
+                    # Perform actual cleaning first; only record operation id on success.
+                    result = plugin.clean(items)
+
+                    # If cleaning succeeded, create a backup log/operation id
+                    try:
+                        if result.get('success'):
+                            operation_id = self.undo_manager.log_operation(plugin_name, items)
+                            result['operation_id'] = operation_id
+                            logger.info(f"Created backup operation {operation_id} for '{plugin_name}'")
+                    except Exception:
+                        # Non-fatal: continue without operation_id
+                        pass
+
+                    # Log to database (record whatever result the plugin returned)
+                    try:
+                        self.db.log_clean_operation(
+                            plugin_name=plugin_name,
+                            items_count=result.get('cleaned_count', 0),
+                            size_freed=result.get('total_size', 0),
+                            success=result.get('success', False),
+                            error_message='; '.join(result.get('errors', []))
+                        )
+                    except Exception:
+                        # ignore DB logging failures
+                        pass
+
+                results[plugin_name] = result
+                logger.info(
+                    f"Cleaned {result['cleaned_count']} items from '{plugin_name}' "
+                    f"({self._format_size(result['total_size'])})"
+                )
+
             except Exception as e:
-                result[plugin_name] = {
+                logger.error(f"Error cleaning with plugin '{plugin_name}': {e}")
+                results[plugin_name] = {
                     'success': False,
                     'cleaned_count': 0,
                     'total_size': 0,
                     'errors': [str(e)]
                 }
 
-        return result
+        return results
+
+    def set_safety_level(self, level: SafetyLevel) -> None:
+        """Set the maximum safety level allowed by the safety validator.
+
+        Args:
+            level: The new maximum safety level.
+        """
+        self.safety_validator.set_max_level(level)
+        logger.info(f"Safety level set to: {level.name}")
+
+    def get_available_plugins(self) -> List[str]:
+        """Get names of all available plugins.
+
+        Returns:
+            List of plugin names that are available on this system.
+        """
+        return [p.get_name() for p in self.registry.get_available_plugins()]
+
+    def _format_size(self, bytes_val: int) -> str:
+        """Format byte size as human-readable string."""
+        val = float(bytes_val)
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if val < 1024.0:
+                return f"{val:.2f} {unit}"
+            val /= 1024.0
+        return f"{val:.2f} PB"

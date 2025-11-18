@@ -1,11 +1,14 @@
 from pathlib import Path
-from typing import List, Any, Dict
+from typing import List, Any, Dict, TYPE_CHECKING
 
-from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
+from .base import BasePlugin
+
+if TYPE_CHECKING:
+    from ..managers.cleaner_manager import CleanableItem, SafetyLevel  # noqa: F401
 
 
-class APTCacheCleaner:
+class APTCacheCleaner(BasePlugin):
     """Cleans APT package cache located at /var/cache/apt/archives by default."""
 
     def __init__(self, cache_dir: Path = Path("/var/cache/apt/archives")):
@@ -17,24 +20,34 @@ class APTCacheCleaner:
     def get_description(self) -> str:
         return "Downloaded package files (.deb) and partial downloads from APT cache."
 
-    def scan(self) -> List[CleanableItem]:
-        items: list[CleanableItem] = []
+    def scan(self) -> "List[CleanableItem]":
+        items: list = []
         if not self.cache_dir.exists():
             return items
 
         partial = self.cache_dir / 'partial'
-        if partial.exists() and partial.is_dir():
-            for p in partial.iterdir():
-                if p.is_file():
-                    items.append(CleanableItem(path=str(p), size=p.stat().st_size, description=f"Incomplete download: {p.name}", safety=SafetyLevel.SAFE))
+        try:
+            if partial.exists() and partial.is_dir():
+                for p in partial.iterdir():
+                    if p.is_file():
+                        from ..managers.cleaner_manager import CleanableItem, SafetyLevel
+                        items.append(CleanableItem(path=str(p), size=p.stat().st_size, description=f"Incomplete download: {p.name}", safety=SafetyLevel.SAFE))
+        except (OSError, PermissionError):
+            # Can't access partial directory; skip it
+            pass
 
-        for deb in self.cache_dir.glob('*.deb'):
-            if deb.is_file():
-                items.append(CleanableItem(path=str(deb), size=deb.stat().st_size, description=f"Cached package: {deb.name}", safety=SafetyLevel.SAFE))
+        try:
+            for deb in self.cache_dir.glob('*.deb'):
+                if deb.is_file():
+                    from ..managers.cleaner_manager import CleanableItem, SafetyLevel
+                    items.append(CleanableItem(path=str(deb), size=deb.stat().st_size, description=f"Cached package: {deb.name}", safety=SafetyLevel.SAFE))
+        except (OSError, PermissionError):
+            # Can't access cache directory; skip
+            pass
 
         return items
 
-    def clean(self, items: List[CleanableItem]) -> dict:
+    def clean(self, items: "List[CleanableItem]") -> dict:
         result: Dict[str, Any] = {'success': False, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
         try:
             # Use apt-get clean via privilege helper; may raise PermissionError if sudo not allowed
@@ -49,26 +62,48 @@ class APTCacheCleaner:
 
         return result
 
+    def is_available(self) -> bool:
+        """Check if apt-get is available on this system."""
+        try:
+            privilege.run_command(['which', 'apt-get'], sudo=False)
+            return True
+        except Exception:
+            return False
+
+    def supports_dry_run(self) -> bool:
+        """APT cache cleaning supports dry-run mode."""
+        return True
+
+    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
+        """Report what would be cleaned without actually cleaning."""
+        return {
+            'success': True,
+            'cleaned_count': len(items),
+            'total_size': sum(i.size for i in items),
+            'errors': [],
+            'dry_run': True
+        }
+
 
 PLUGIN_INFO = {
-    'name': 'APT Package Cache Cleaner',
-    'description': 'Scans and cleans APT package cache (deb files and partial downloads).',
+    'name': 'APT Package Cache',
+    'description': 'Downloaded package files (.deb) and partial downloads from APT cache.',
     'module': 'smartcleaner.plugins.apt_cache',
     'class': 'APTCacheCleaner',
     'config': {
         'cache_dir': {
             'type': 'path',
-            'description': 'Path to apt cache directory',
-            'example': '/var/cache/apt/archives'
+            'description': 'Path to the APT cache directory',
+            'default': '/var/cache/apt/archives',
+            'required': False
         }
     },
     'constructor': {
         'cache_dir': {
             'type': 'path',
             'default': '/var/cache/apt/archives',
-            'description': 'Path to apt cache directory',
             'required': False,
             'annotation': 'pathlib.Path'
         }
-    },
+    }
 }

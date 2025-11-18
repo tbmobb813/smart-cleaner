@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime, timedelta
 import shutil
 import os
 
 from ..db.operations import DatabaseManager
-from .cleaner_manager import CleanableItem
+
+if TYPE_CHECKING:
+    from .cleaner_manager import CleanableItem
 
 
 class UndoManager:
@@ -23,7 +25,7 @@ class UndoManager:
         self.backup_dir = backup_dir or Path.home() / '.local' / 'share' / 'smartcleaner' / 'backups'
         self.backup_dir.mkdir(parents=True, exist_ok=True)
 
-    def log_operation(self, plugin_name: str, items: List[CleanableItem]) -> int:
+    def log_operation(self, plugin_name: str, items: "List[CleanableItem]") -> int:
         """Log an operation and create backup entries for file items.
 
         Returns the operation_id in the DB.

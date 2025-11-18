@@ -26,9 +26,20 @@ def _get_db(db_path: Optional[str] = None) -> DatabaseManager:
 
 
 @click.group()
-def cli():
+@click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
+@click.option('--quiet', '-q', is_flag=True, help='Suppress most output')
+@click.pass_context
+def cli(ctx, verbose: bool, quiet: bool):
     """SmartCleaner CLI: inspect and restore clean operations."""
-    pass
+    from smartcleaner.utils.logging_config import setup_cli_logging
+
+    # Store flags in context for subcommands
+    ctx.ensure_object(dict)
+    ctx.obj['verbose'] = verbose
+    ctx.obj['quiet'] = quiet
+
+    # Setup logging
+    setup_cli_logging(verbose=verbose, quiet=quiet)
 
 
 @cli.group('schema')
@@ -144,6 +155,168 @@ def gc_cmd(db: Optional[str], keep_last: Optional[int], older_than_days: Optiona
             return
     res = undo.prune_backups(keep_last=keep_last, older_than_days=older_than_days)
     click.echo(f"Pruned: removed={res['removed']} remaining={res['remaining']}")
+
+
+@cli.command('scan')
+@click.option('--db', default=None, help='Path to sqlite DB (optional)')
+@click.option('--safety', type=click.Choice(['SAFE', 'CAUTION', 'ADVANCED', 'DANGEROUS']), default='CAUTION', help='Maximum safety level to include')
+@click.option('--plugin', default=None, help='Scan only this plugin (optional)')
+def scan_cmd(db: Optional[str], safety: str, plugin: Optional[str]):
+    """Scan for cleanable items."""
+    from smartcleaner.managers.cleaner_manager import CleanerManager, SafetyLevel
+
+    dbm = _get_db(db)
+    manager = CleanerManager(db_manager=dbm)
+
+    # Convert safety string to enum
+    safety_level = SafetyLevel[safety]
+
+    if plugin:
+        # Scan specific plugin
+        try:
+            items = manager.scan_plugin(plugin, safety_filter=safety_level)
+            if not items:
+                click.echo(f"No items found for plugin '{plugin}'")
+                return
+
+            click.echo(f"\n{click.style(plugin, fg='cyan', bold=True)}")
+            click.echo(f"Found {len(items)} items:")
+            total_size = 0
+            for item in items:
+                size_h = _human_size(item.size)
+                safety_color = 'green' if item.safety == SafetyLevel.SAFE else 'yellow'
+                click.echo(f"  [{click.style(item.safety.name, fg=safety_color)}] {item.description} ({size_h})")
+                total_size += item.size
+            click.echo(f"Total: {click.style(_human_size(total_size), fg='yellow', bold=True)}")
+        except ValueError as e:
+            click.echo(f"Error: {e}", err=True)
+            return
+    else:
+        # Scan all plugins
+        results = manager.scan_all(safety_filter=safety_level)
+
+        if not results:
+            click.echo('No cleanable items found.')
+            return
+
+        grand_total = 0
+        for plugin_name, items in results.items():
+            click.echo(f"\n{click.style(plugin_name, fg='cyan', bold=True)}")
+            click.echo(f"Found {len(items)} items:")
+            plugin_total = 0
+            for item in items[:5]:  # Show first 5 items
+                size_h = _human_size(item.size)
+                safety_color = 'green' if item.safety == SafetyLevel.SAFE else 'yellow'
+                click.echo(f"  [{click.style(item.safety.name, fg=safety_color)}] {item.description} ({size_h})")
+                plugin_total += item.size
+
+            if len(items) > 5:
+                remaining = len(items) - 5
+                remaining_size = sum(i.size for i in items[5:])
+                click.echo(f"  ... and {remaining} more items ({_human_size(remaining_size)})")
+                plugin_total += remaining_size
+
+            click.echo(f"Subtotal: {click.style(_human_size(plugin_total), fg='yellow')}")
+            grand_total += plugin_total
+
+        click.echo(f"\n{click.style('Grand Total:', bold=True)} {click.style(_human_size(grand_total), fg='yellow', bold=True)}")
+
+
+@cli.command('clean')
+@click.option('--db', default=None, help='Path to sqlite DB (optional)')
+@click.option('--safety', type=click.Choice(['SAFE', 'CAUTION', 'ADVANCED', 'DANGEROUS']), default='CAUTION', help='Maximum safety level to clean')
+@click.option('--plugin', default=None, help='Clean only this plugin (optional)')
+@click.option('--dry-run', is_flag=True, help='Show what would be cleaned without cleaning')
+@click.option('--yes', is_flag=True, help='Do not ask for confirmation')
+def clean_cmd(db: Optional[str], safety: str, plugin: Optional[str], dry_run: bool, yes: bool):
+    """Clean items found by scan."""
+    from smartcleaner.managers.cleaner_manager import CleanerManager, SafetyLevel
+    import os
+
+    dbm = _get_db(db)
+    manager = CleanerManager(db_manager=dbm)
+
+    # Convert safety string to enum
+    safety_level = SafetyLevel[safety]
+
+    # Scan first
+    if plugin:
+        try:
+            items = manager.scan_plugin(plugin, safety_filter=safety_level)
+            if not items:
+                click.echo(f"No items found for plugin '{plugin}'")
+                return
+            items_by_plugin = {plugin: items}
+        except ValueError as e:
+            click.echo(f"Error: {e}", err=True)
+            return
+    else:
+        items_by_plugin = manager.scan_all(safety_filter=safety_level)
+
+    if not items_by_plugin:
+        click.echo('No cleanable items found.')
+        return
+
+    # Show what will be cleaned
+    total_items = sum(len(items) for items in items_by_plugin.values())
+    total_size = sum(sum(item.size for item in items) for items in items_by_plugin.values())
+
+    click.echo(f"\nWill clean {total_items} items ({_human_size(total_size)}) from {len(items_by_plugin)} plugins:")
+    for plugin_name, items in items_by_plugin.items():
+        plugin_size = sum(item.size for item in items)
+        click.echo(f"  {click.style(plugin_name, fg='cyan')}: {len(items)} items ({_human_size(plugin_size)})")
+
+    if dry_run:
+        click.echo(f"\n{click.style('DRY-RUN MODE', fg='yellow', bold=True)} - no changes will be made.")
+        # Still perform dry-run to show results
+        results = manager.clean_selected(items_by_plugin, dry_run=True)
+        click.echo("\nDry-run results:")
+        for plugin_name, result in results.items():
+            status = click.style('✓', fg='green') if result['success'] else click.style('✗', fg='red')
+            click.echo(f"  {status} {plugin_name}: would clean {result['cleaned_count']} items")
+        return
+
+    # Ask for confirmation unless --yes flag
+    if not yes:
+        # Check if we need sudo for any operations
+        requires_sudo = any('apt' in p.lower() or 'journal' in p.lower() or 'kernel' in p.lower()
+                          for p in items_by_plugin.keys())
+
+        if requires_sudo:
+            click.echo(f"\n{click.style('WARNING:', fg='red', bold=True)} This operation may require sudo privileges.")
+            sudo_allowed = os.environ.get('SMARTCLEANER_ALLOW_SUDO')
+            if not sudo_allowed:
+                click.echo("Set SMARTCLEANER_ALLOW_SUDO=1 to allow automated sudo, or run commands manually.")
+
+        confirmed = click.confirm('\nProceed with cleaning?')
+        if not confirmed:
+            click.echo('Aborted.')
+            return
+
+    # Perform cleaning
+    click.echo('\nCleaning...')
+    results = manager.clean_selected(items_by_plugin, dry_run=False)
+
+    # Show results
+    click.echo('\nResults:')
+    total_cleaned = 0
+    total_freed = 0
+    for plugin_name, result in results.items():
+        if result['success']:
+            status = click.style('✓', fg='green')
+            total_cleaned += result['cleaned_count']
+            total_freed += result['total_size']
+        else:
+            status = click.style('✗', fg='red')
+
+        size_h = _human_size(result['total_size'])
+        click.echo(f"  {status} {plugin_name}: cleaned {result['cleaned_count']} items ({size_h})")
+
+        if result.get('errors'):
+            for error in result['errors']:
+                click.echo(f"      {click.style('Error:', fg='red')} {error}")
+
+    click.echo(f"\n{click.style('Total freed:', bold=True)} {click.style(_human_size(total_freed), fg='green', bold=True)}")
 
 
 def main():

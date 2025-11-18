@@ -1,50 +1,25 @@
 import re
-from typing import List, Tuple, Any, Dict
+from typing import List, Any, Dict, TYPE_CHECKING
 
-from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
+from .base import BasePlugin
+
+if TYPE_CHECKING:
+    from ..managers.cleaner_manager import CleanableItem, SafetyLevel  # noqa: F401
 
 
-PLUGIN_INFO: Dict[str, Any] = {
-    'name': 'Old Kernels Cleaner',
-    'description': 'Detects installed linux-image packages and offers to purge older kernels while keeping the running and recent ones.',
-}
-# Extended metadata for discovery and configuration UI
-PLUGIN_INFO.update({
-    'module': 'smartcleaner.plugins.kernels',
-    'class': 'KernelCleaner',
-    'config': {
-        'keep_kernels': {
-            'type': 'int',
-            'code_default': 2,
-            'description': 'How many recent kernels to retain (the running kernel is always kept).',
-            'min': 0,
-            'max': 50,
-        }
-    },
-    'constructor': {
-        'keep': {
-            'type': 'int',
-            'default': None,
-            'description': 'How many recent kernels to keep; if null the code default is used',
-            'required': False,
-            'annotation': 'Optional[int]',
-            'min': 0,
-            'max': 50,
-        }
-    },
-})
-
-def version_key(v: str) -> Tuple[int, ...]:
-    """Return a numeric key for a version-like string by extracting integer groups.
-
-    This is a best-effort comparator that ignores non-numeric suffixes (e.g., rc1).
+def version_key(version: str):
     """
-    nums = re.findall(r"\d+", v)
-    return tuple(int(n) for n in nums)
+    Create a sortable key for kernel version strings by extracting numeric components
+    and returning a tuple of (numeric_parts_tuple, original_string) so that
+    numeric comparisons are used first and the original string is a tiebreaker.
+    """
+    nums = tuple(int(x) for x in re.findall(r'\d+', version))
+    # Return a flat tuple of numeric components for easy sorting/comparison
+    return nums
 
 
-class KernelCleaner:
+class KernelCleaner(BasePlugin):
     """Removes old Linux kernels, keeping the current and most recent."""
 
     KERNELS_TO_KEEP = 2
@@ -93,8 +68,8 @@ class KernelCleaner:
 
         return kernels
 
-    def scan(self) -> List[CleanableItem]:
-        items: List[CleanableItem] = []
+    def scan(self) -> "List[CleanableItem]":
+        items: List = []
         try:
             kernels = self.get_installed_kernels()
 
@@ -113,6 +88,7 @@ class KernelCleaner:
 
             for kernel in kernels:
                 if not kernel.get('keep', False):
+                    from ..managers.cleaner_manager import CleanableItem, SafetyLevel
                     items.append(CleanableItem(path=kernel['package'], size=kernel['size'], description=f"Old kernel: {kernel['version']}", safety=SafetyLevel.SAFE,))
 
         except Exception:
@@ -121,7 +97,7 @@ class KernelCleaner:
 
         return items
 
-    def clean(self, items: List[CleanableItem]) -> dict:
+    def clean(self, items: "List[CleanableItem]") -> dict:
         result: Dict[str, Any] = {'success': True, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
         for item in items:
             try:
@@ -139,3 +115,52 @@ class KernelCleaner:
             pass
 
         return result
+
+    def is_available(self) -> bool:
+        """Check if this plugin is available (requires dpkg and apt-get)."""
+        try:
+            privilege.run_command(['which', 'dpkg'], sudo=False)
+            privilege.run_command(['which', 'apt-get'], sudo=False)
+            return True
+        except Exception:
+            return False
+
+    def supports_dry_run(self) -> bool:
+        """Kernel cleaning supports dry-run mode."""
+        return True
+
+    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
+        """Report what would be cleaned without actually cleaning."""
+        return {
+            'success': True,
+            'cleaned_count': len(items),
+            'total_size': sum(item.size for item in items),
+            'errors': [],
+            'dry_run': True
+        }
+
+
+PLUGIN_INFO = {
+    'name': 'Old Kernels',
+    'description': 'Removes old kernel packages while keeping the current and recent backups.',
+    'module': 'smartcleaner.plugins.kernels',
+    'class': 'KernelCleaner',
+    'config': {
+        'keep_kernels': {
+            'type': 'integer',
+            'description': 'How many recent kernels to keep',
+            'min': 0,
+            'max': 50,
+            'code_default': 2,
+            'required': False
+        }
+    },
+    'constructor': {
+        'keep_kernels': {
+            'type': 'integer',
+            'default': 2,
+            'required': False,
+            'annotation': 'Optional[int]'
+        }
+    }
+}

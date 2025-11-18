@@ -1,5 +1,7 @@
-from typing import Optional
-from .cleaner_manager import CleanableItem, SafetyLevel
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .cleaner_manager import CleanableItem, SafetyLevel
 
 
 class SafetyValidator:
@@ -10,12 +12,14 @@ class SafetyValidator:
     path patterns, time-based rules, etc.).
     """
 
-    def __init__(self, max_level: Optional[SafetyLevel] = None):
-        self.max_level = max_level if max_level is not None else SafetyLevel.CAUTION
+    def __init__(self, max_level: "Optional[SafetyLevel]" = None):
+        # Import at runtime only when needed to avoid circular imports
+        from .cleaner_manager import SafetyLevel as _SafetyLevel
+        self.max_level = max_level if max_level is not None else _SafetyLevel.CAUTION
 
-    def is_allowed(self, item: CleanableItem) -> bool:
+    def is_allowed(self, item: "CleanableItem") -> bool:
         """Return True if the item is allowed to be cleaned under current policy."""
         return item.safety <= self.max_level
 
-    def set_max_level(self, level: SafetyLevel):
+    def set_max_level(self, level: "SafetyLevel"):
         self.max_level = level

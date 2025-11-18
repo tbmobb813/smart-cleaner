@@ -1,262 +1,187 @@
-# Smart Cleaner - GUI skeleton (PyQt6)
-
-Version: 0.1.1
-
-===================================
-
-````markdown
-Smart Cleaner - GUI skeleton (PyQt6)
-===================================
-
-Smart Cleaner is a modular Linux system cleaning toolkit. The project is
-organized into plugins (each implements scanning and cleaning), a manager to
-orchestrate operations, a small undo/logging layer, and both CLI/GUI front-ends
-(the GUI is a minimal PyQt6 skeleton in `src/smartcleaner/gui/main_window.py`).
-
-See `docs/ARCHITECTURE.md` for a developer-focused architecture overview and
-design notes.
-
-Quick start (Linux)
----------------------
-
-1. Create and activate a virtual environment:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-2. Install test dependencies (pytest) and optional GUI deps:
-
-```bash
-pip install --upgrade pip
-pip install pytest
-# optional: pip install PyQt6
-```
-
-3. Run tests:
-
-```bash
-PYTHONPATH=src python -m pytest -q
-```
-
-4. Run the GUI skeleton (requires PyQt6):
-
-```bash
 # Smart Cleaner
 
-Smart Cleaner is a modular Linux system cleaning toolkit. The project is
-organized into plugins (each implements scanning and cleaning), a manager to
-orchestrate operations, a small undo/logging layer, and both CLI/GUI front-ends
-(the GUI is a minimal PyQt6 skeleton in `src/smartcleaner/gui/main_window.py`).
-
-See `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` for developer-focused
-architecture and roadmap.
-<!-- Badge: CI status -->
 ![CI](https://github.com/tbmobb813/smart-cleaner/actions/workflows/ci.yml/badge.svg)
 
-# Smart Cleaner
+Version: 0.2.0-dev
 
-Smart Cleaner is a modular Linux system cleaning toolkit. It provides:
+Smart Cleaner is a modular Linux system cleaning toolkit with a focus on safety, transparency, and undo capabilities.
 
-- A small plugin system (each plugin scans and reports items that can be cleaned).
-- A manager layer to orchestrate scans/cleans and a safe undo/restore system.
-- A CLI and a minimal PyQt6 GUI skeleton (see `src/smartcleaner/gui/main_window.py`).
+## Features
 
-See `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` for developer docs and plans.
+### 🔌 Plugin-Based Architecture
 
-## Quick start (Linux)
+- **6 Built-in Plugins**: APT cache, old kernels, browser cache, temporary files, thumbnails, systemd journals
+- **Extensible Design**: Easy to add new cleaning plugins
+- **Safety Levels**: Every item tagged with safety level (SAFE, CAUTION, ADVANCED, DANGEROUS)
+- **Dry-Run Support**: Preview what will be cleaned before making changes
+- **Auto-Discovery**: Plugins automatically registered and available
 
-1. Create and activate a virtual environment:
+### 🛡️ Safety First
+
+- Safety validator enforces policies before cleaning
+- Automatic backup/undo system for file operations
+- Database logging of all operations
+- Interactive confirmations for destructive actions
+- Privilege escalation warnings (SMARTCLEANER_ALLOW_SUDO)
+
+### 🖥️ Multiple Interfaces
+
+- **CLI**: Full-featured command-line interface with scan, clean, restore, gc commands
+- **GUI**: PyQt6 graphical interface (functional, works with all plugins)
+- **Library**: Use as a Python library in your own code
+
+### 📊 Comprehensive CLI
+
+```bash
+# Scan for cleanable items
+smartcleaner scan                    # Scan all plugins
+smartcleaner scan --plugin "APT Package Cache"  # Scan specific plugin
+smartcleaner scan --safety SAFE      # Only show SAFE items
+
+# Clean items
+smartcleaner clean                   # Clean with confirmation
+smartcleaner clean --dry-run         # Preview without cleaning
+smartcleaner clean --yes             # Skip confirmation
+smartcleaner clean --safety ADVANCED # Clean up to ADVANCED level
+
+# View operation history
+smartcleaner list                    # Recent operations
+smartcleaner show 123                # Details for operation 123
+
+# Restore from backups
+smartcleaner restore 123             # Restore operation 123
+smartcleaner restore 123 --dry-run   # Preview restore
+
+# Prune old backups
+smartcleaner gc --keep-last 5        # Keep 5 most recent
+smartcleaner gc --older-than-days 30 # Remove backups >30 days old
+```
+
+Features: Color-coded output, safety indicators, human-readable sizes, logging controls (`--verbose`, `--quiet`)
+
+## Quick Start (Linux)
+
+### 1. Create and activate a virtual environment
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-2. Install test dependencies (pytest) and optional GUI deps:
+### 2. Install dependencies
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
-# optional: pip install PyQt6
+# For development:
+pip install -r requirements-dev.txt
+# For GUI (optional):
+pip install PyQt6
 ```
 
-3. Run tests:
+### 3. Run tests
 
 ```bash
 PYTHONPATH=src python -m pytest -q
 ```
 
-4. Run the CLI (module form):
+### 4. Install and run
 
 ```bash
-python -m smartcleaner.cli.commands list --db /path/to/smartcleaner.db
-```
-
-Or, after installing the package (editable install):
-
-```bash
+# Install package (editable mode)
 pip install -e .
+
+# Use CLI
 smartcleaner --help
+smartcleaner scan
+smartcleaner clean --dry-run
+
+# Run GUI (requires PyQt6)
+python -m smartcleaner.gui.main_window
 ```
 
-## Notes on sudo and privilege escalation
+## Available Plugins
+
+| Plugin | Description | Safety Level | Requires Sudo |
+|--------|-------------|--------------|---------------|
+| **APT Package Cache** | Cached .deb files from APT | SAFE | Yes |
+| **Old Kernels** | Old kernel packages (keeps current + 1) | SAFE | Yes |
+| **Browser Cache** | Firefox, Chrome, Chromium, Brave, Edge | SAFE | No |
+| **Temporary Files** | Old files from /tmp and ~/.cache | SAFE-CAUTION | No |
+| **Thumbnail Cache** | Cached thumbnails | SAFE | No |
+| **Systemd Journals** | Old systemd logs (keeps 30 days) | CAUTION | Yes |
+
+## Architecture
+
+smartcleaner/
+├── plugins/          # Cleaning plugins (inherit from BasePlugin)
+│   ├── base.py       # BasePlugin abstract class
+│   ├── apt_cache.py
+│   ├── kernels.py
+│   ├── browser_cache.py
+│   ├── temp_files.py
+│   ├── thumbnails.py
+│   └── systemd_journals.py
+├── managers/         # Core orchestration
+│   ├── cleaner_manager.py  # Main orchestrator
+│   ├── plugin_registry.py  # Plugin discovery
+│   ├── undo_manager.py     # Backup/restore
+│   └── safety_validator.py # Safety enforcement
+├── cli/              # Command-line interface
+├── gui/              # PyQt6 GUI
+├── db/               # SQLite operations
+└── utils/            # Logging, privilege escalation
+
+See `docs/ARCHITECTURE.md` for detailed architecture overview and design decisions.
+
+## Safety and Privilege Escalation
 
 Privilege escalation is centralized in `src/smartcleaner/utils/privilege.py`.
-To allow automated sudo runs, set `SMARTCLEANER_ALLOW_SUDO=1` in the environment — only after explicit user confirmation.
+
+To allow automated sudo for system operations (APT, kernels, journals):
+
+```bash
+export SMARTCLEANER_ALLOW_SUDO=1
+smartcleaner clean  # Will use sudo when needed
+```
+
+**Warning**: Only set this after reviewing what will be cleaned and understanding the implications.
 
 ## Contributing
 
-- Run tests locally: `PYTHONPATH=src python -m pytest -q`.
-- Avoid direct `sudo` in plugins; use `src/smartcleaner/utils/privilege.py`.
-- Add unit tests for any feature that touches system state.
+- Run tests locally: `PYTHONPATH=src python -m pytest -q`
+- Use development dependencies: `pip install -r requirements-dev.txt`
+- Run type checking: `mypy src --show-error-codes --ignore-missing-imports`
+- Run linter: `ruff check .`
+- Avoid direct `sudo` in plugins; use `src/smartcleaner/utils/privilege.py`
+- Add unit tests for any new feature
+- All plugins should inherit from `BasePlugin`
 
-## Scheduling GC (backups cleanup)
+## Development Roadmap
 
-Use the `gc` command to prune backups. See `docs/GC.md` for systemd and cron examples.
+See `docs/ROADMAP.md` for planned features and implementation priorities.
 
-## Configuration
+Completed in v0.2.0:
 
-Smart Cleaner reads configuration from the XDG configuration directory. By default
+- ✅ Plugin system and registry
+- ✅ 4 new cleaning plugins
+- ✅ Dry-run support
+- ✅ Enhanced CLI (scan/clean commands)
+- ✅ Structured logging
 
-the config file is expected at:
+Upcoming:
 
-  $XDG_CONFIG_HOME/smartcleaner/config.toml
+- Progress indicators for CLI (using rich library)
+- Additional plugins (Docker, Snap cache)
+- Coverage reporting
+- Distribution packaging (deb, rpm)
 
+## Documentation
 
-If `XDG_CONFIG_HOME` is not set, the fallback path is:
+- `docs/ARCHITECTURE.md` - Architecture overview and design decisions
+- `docs/ROADMAP.md` - Development roadmap and priorities
+- `docs/GC.md` - Backup garbage collection and scheduling
 
-  ~/.config/smartcleaner/config.toml
+## License
 
-Supported configuration keys (TOML):
-
-- `keep_kernels` (integer): default number of recent kernels to keep when
-  running `clean kernels` (CLI flags override this value).
-- `db_path` (string): default path to the sqlite DB used for undo/logging.
-
-Environment variables override config values:
-
-- `SMARTCLEANER_KEEP_KERNELS` overrides `keep_kernels`.
-- `SMARTCLEANER_DB_PATH` overrides `db_path`.
-
-The CLI also accepts runtime flags which take precedence over both config and
-environment variables. Example:
-
-```bash
-smartcleaner clean kernels --keep-kernels 3 --yes
-```
-
-## Example output: plugins show
-
-The `plugins show <module:ClassName>` command prints available metadata and the
-constructor signature. Example output (abridged):
-
-```
-PLUGIN_INFO:
-  name: APT Package Cache Cleaner
-  description: Scans and cleans APT package cache (deb files and partial downloads).
-Class: smartcleaner.plugins.apt_cache.APTCacheCleaner
-Doc: Cleans APT package cache located at /var/cache/apt/archives by default.
-Constructor:
-  cache_dir: pathlib.Path = PosixPath('/var/cache/apt/archives')
-```
-
-This helps discover which plugin factories are available and what constructor
-arguments they accept.
-
-Additional sample outputs:
-
-```
-PLUGIN_INFO:
-  name: Browser Cache Cleaner
-  description: Scans common browser cache directories (Chrome/Chromium/Firefox) and removes cached files and empty dirs.
-Class: smartcleaner.plugins.browser_cache.BrowserCacheCleaner
-Doc: Cleans common browser cache directories (Chrome/Chromium/Firefox) under a base cache dir.
-Constructor:
-  base_dirs: typing.Optional[list[pathlib.Path]] = None
-```
-
-```
-PLUGIN_INFO:
-  name: Thumbnail Cache Cleaner
-  description: Scans and cleans user thumbnail cache (~/.cache/thumbnails).
-Class: smartcleaner.plugins.thumbnails.ThumbnailCacheCleaner
-Doc: Cleans the GNOME/thumbnail cache at ~/.cache/thumbnails by default.
-Constructor:
-  cache_dir: typing.Optional[pathlib.Path] = None
-```
-
-## Per-plugin configuration
-
-Smart Cleaner supports per-plugin persistent configuration stored under the
-XDG config file (`$XDG_CONFIG_HOME/smartcleaner/config.toml`). Plugin-specific
-settings are stored under the `plugins` table using the plugin module name as
-the table key. Example:
-
-```toml
-[plugins."smartcleaner.plugins.kernels"]
-keep_kernels = 3
-```
-
-Use the `config plugin` CLI to manage per-plugin values. Values are validated
-against each plugin's `PLUGIN_INFO['config']` schema before being written.
-
-Examples:
-
-```bash
-# Set the keep_kernels value for the kernels plugin (validated)
-smartcleaner config plugin set smartcleaner.plugins.kernels keep_kernels 3 --yes
-
-# Read a plugin-scoped value
-smartcleaner config plugin get smartcleaner.plugins.kernels keep_kernels
-
-# Get it as JSON for programmatic consumption
-smartcleaner config plugin get smartcleaner.plugins.kernels keep_kernels --json
-```
-
-Notes:
-- The CLI will validate values (min/max/choices/type) using the plugin's
-  declared schema and will refuse invalid inputs.
-- For TOML writing we prefer `tomli-w` (installed via `requirements.txt`) to
-  ensure round-trip friendly, deterministic output. If `tomli-w` is not
-  available the code falls back to a safe scalar TOML writer that still
-  preserves plugin tables and basic array types.
-
-## Plugin discovery & JSON schema export
-
-The CLI and a small discovery API make it easy to enumerate available plugin
-factories and export a machine-readable schema for building forms.
-
-CLI examples:
-
-```bash
-# List available plugin factories as JSON (useful for tooling)
-PYTHONPATH=src python -m smartcleaner.cli.commands plugins list --json
-
-# Show detailed metadata for a factory (JSON)
-PYTHONPATH=src python -m smartcleaner.cli.commands plugins show smartcleaner.plugins.kernels:KernelCleaner --json
-
-# Export a plugin's JSON Schema / form spec (derived from PLUGIN_INFO)
-PYTHONPATH=src python -m smartcleaner.cli.commands plugins export-form smartcleaner.plugins.kernels:KernelCleaner --json
-```
-
-Programmatic discovery (Python):
-
-```python
-from smartcleaner.plugins import discovery
-
-# Returns a mapping factory_key -> metadata (module, class, plugin_info, description)
-meta = discovery.get_factories_metadata()
-for key, info in meta.items():
-    print(key, info.get('description'))
-
-# Get PLUGIN_INFO for a factory
-info = discovery.get_plugin_info('smartcleaner.plugins.kernels:KernelCleaner')
-print(info)
-```
-
-This makes it straightforward for GUI frontends to enumerate plugins and
-request a JSON Schema for rendering configuration forms.
-
-
+See `LICENSE` file.

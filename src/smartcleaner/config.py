@@ -240,7 +240,7 @@ def _parse_value_by_type(type_name: str, raw_value: Any):
         return None
 
     t = type_name.strip().lower()
-    if t == 'int':
+    if t == 'int' or t == 'integer':
         try:
             return int(raw_value)
         except Exception as e:
@@ -302,7 +302,8 @@ def validate_plugin_config(module_name: str, key: str, raw_value: Any):
     parsed = _parse_value_by_type(expected_type, raw_value)
 
     # numeric bounds
-    if expected_type == 'int':
+    # treat 'int' and 'integer' as equivalent in schema
+    if expected_type in ('int', 'integer'):
         mn = schema.get('min')
         mx = schema.get('max')
         try:
