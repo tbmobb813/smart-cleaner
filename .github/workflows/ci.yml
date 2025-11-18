@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest ruff click mypy
+          pip install pytest ruff click mypy tomli tomli-w tomlkit
 
       - name: Run linter (ruff)
         run: ruff check .
@@ -40,6 +40,9 @@ jobs:
 
       - name: CLI smoke test (module)
         run: PYTHONPATH=src python -m smartcleaner.cli.commands list --db smoke.db
+
+      - name: CLI plugins list (module)
+        run: PYTHONPATH=src python -m smartcleaner.cli.commands plugins list --brief
 
       - name: Install package (editable)
         run: |
