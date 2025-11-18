@@ -1,11 +1,13 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+from .base import BasePlugin
 import shutil
 
-from ..managers.cleaner_manager import CleanableItem, SafetyLevel
+if TYPE_CHECKING:
+    from ..managers.cleaner_manager import CleanableItem, SafetyLevel  # noqa: F401
 
 
-class TmpCleaner:
+class TmpCleaner(BasePlugin):
     """Cleans temporary directories like /tmp or a provided base path."""
 
     def __init__(self, base_dir: Optional[Path] = None):
@@ -24,6 +26,7 @@ class TmpCleaner:
         for p in self.base_dir.iterdir():
             try:
                 if p.is_file():
+                    from ..managers.cleaner_manager import CleanableItem, SafetyLevel
                     items.append(CleanableItem(path=str(p), size=int(p.stat().st_size), description=f"Temp file: {p.name}", safety=SafetyLevel.SAFE))
                 elif p.is_dir():
                     # include directory sizes as approximate (sum children)
@@ -34,6 +37,7 @@ class TmpCleaner:
                                 size += int(sub.stat().st_size)
                         except Exception:
                             continue
+                    from ..managers.cleaner_manager import CleanableItem, SafetyLevel
                     items.append(CleanableItem(path=str(p), size=size, description=f"Temp dir: {p.name}", safety=SafetyLevel.SAFE))
             except Exception:
                 continue

@@ -3,10 +3,12 @@
 Cleans browser cache files from Firefox, Chrome, Chromium, and other common browsers.
 """
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, TYPE_CHECKING
 
-from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from .base import BasePlugin
+
+if TYPE_CHECKING:
+    from ..managers.cleaner_manager import CleanableItem, SafetyLevel  # noqa: F401
 
 
 class BrowserCacheCleaner(BasePlugin):
@@ -34,8 +36,10 @@ class BrowserCacheCleaner(BasePlugin):
         ],
     }
 
-    def __init__(self, home_dir: Path = Path.home()):
+    def __init__(self, home_dir: Path = Path.home(), base_dirs: List[Path] | None = None):
+        # Accept either a single home_dir or explicit base_dirs (for tests)
         self.home_dir = Path(home_dir)
+        self.base_dirs = [Path(d) for d in base_dirs] if base_dirs is not None else None
 
     def get_name(self) -> str:
         return "Browser Cache"
@@ -43,42 +47,54 @@ class BrowserCacheCleaner(BasePlugin):
     def get_description(self) -> str:
         return "Cache files from Firefox, Chrome, Chromium, Brave, and other browsers."
 
-    def scan(self) -> List[CleanableItem]:
-        items: List[CleanableItem] = []
+    def scan(self) -> "List[CleanableItem]":
+        items: List = []
 
-        for browser_name, patterns in self.BROWSER_PATHS.items():
-            for pattern in patterns:
-                # Expand glob patterns
-                if '*' in pattern:
-                    # Handle wildcards manually
-                    base = pattern.split('*')[0]
-                    base_path = self.home_dir / base
-                    if base_path.exists():
-                        # Find all matching directories
-                        parent = base_path.parent
-                        if parent.exists():
-                            for subdir in parent.iterdir():
-                                if subdir.is_dir():
-                                    # Check if this matches the pattern
-                                    cache_path = subdir / pattern.split('*/')[-1]
-                                    if cache_path.exists():
-                                        items.extend(self._scan_directory(cache_path, browser_name))
-                else:
-                    cache_path = self.home_dir / pattern
-                    if cache_path.exists():
-                        items.extend(self._scan_directory(cache_path, browser_name))
+        # If explicit base_dirs were provided (tests), scan those directories directly
+        if self.base_dirs is not None:
+            for d in self.base_dirs:
+                p = Path(d)
+                if p.exists():
+                    items.extend(self._scan_directory(p, 'Browser'))
+            return items
+
+        search_bases = [self.home_dir]
+
+        for base_home in search_bases:
+            for browser_name, patterns in self.BROWSER_PATHS.items():
+                for pattern in patterns:
+                    # Expand glob patterns
+                    if '*' in pattern:
+                        # Handle wildcards manually
+                        base = pattern.split('*')[0]
+                        base_path = base_home / base
+                        if base_path.exists():
+                            # Find all matching directories
+                            parent = base_path.parent
+                            if parent.exists():
+                                for subdir in parent.iterdir():
+                                    if subdir.is_dir():
+                                        # Check if this matches the pattern
+                                        cache_path = subdir / pattern.split('*/')[-1]
+                                        if cache_path.exists():
+                                            items.extend(self._scan_directory(cache_path, browser_name))
+                    else:
+                        cache_path = base_home / pattern
+                        if cache_path.exists():
+                            items.extend(self._scan_directory(cache_path, browser_name))
 
         return items
 
-    def _scan_directory(self, path: Path, browser_name: str) -> List[CleanableItem]:
+    def _scan_directory(self, path: Path, browser_name: str) -> "List[CleanableItem]":
         """Scan a directory and return CleanableItems for all files."""
-        items: List[CleanableItem] = []
+        items: List = []
 
         try:
             for entry in path.rglob('*'):
                 if entry.is_file():
                     try:
                         size = entry.stat().st_size
+                        from ..managers.cleaner_manager import CleanableItem, SafetyLevel
                         items.append(CleanableItem(
                             path=str(entry),
                             size=size,
@@ -94,7 +110,7 @@ class BrowserCacheCleaner(BasePlugin):
 
         return items
 
-    def clean(self, items: List[CleanableItem]) -> Dict[str, Any]:
+    def clean(self, items: "List[CleanableItem]") -> Dict[str, Any]:
         result: Dict[str, Any] = {
             'success': True,
             'cleaned_count': 0,
@@ -129,7 +145,7 @@ class BrowserCacheCleaner(BasePlugin):
     def supports_dry_run(self) -> bool:
         return True
 
-    def clean_dry_run(self, items: List[CleanableItem]) -> Dict[str, Any]:
+    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
         return {
             'success': True,
             'cleaned_count': len(items),

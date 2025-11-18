@@ -9,6 +9,7 @@ Smart Cleaner is a modular Linux system cleaning toolkit with a focus on safety,
 ## Features
 
 ### 🔌 Plugin-Based Architecture
+
 - **6 Built-in Plugins**: APT cache, old kernels, browser cache, temporary files, thumbnails, systemd journals
 - **Extensible Design**: Easy to add new cleaning plugins
 - **Safety Levels**: Every item tagged with safety level (SAFE, CAUTION, ADVANCED, DANGEROUS)
@@ -16,6 +17,7 @@ Smart Cleaner is a modular Linux system cleaning toolkit with a focus on safety,
 - **Auto-Discovery**: Plugins automatically registered and available
 
 ### 🛡️ Safety First
+
 - Safety validator enforces policies before cleaning
 - Automatic backup/undo system for file operations
 - Database logging of all operations
@@ -23,6 +25,7 @@ Smart Cleaner is a modular Linux system cleaning toolkit with a focus on safety,
 - Privilege escalation warnings (SMARTCLEANER_ALLOW_SUDO)
 
 ### 🖥️ Multiple Interfaces
+
 - **CLI**: Full-featured command-line interface with scan, clean, restore, gc commands
 - **GUI**: PyQt6 graphical interface (functional, works with all plugins)
 - **Library**: Use as a Python library in your own code
@@ -58,14 +61,14 @@ Features: Color-coded output, safety indicators, human-readable sizes, logging c
 
 ## Quick Start (Linux)
 
-### 1. Create and activate a virtual environment:
+### 1. Create and activate a virtual environment
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 2. Install dependencies:
+### 2. Install dependencies
 
 ```bash
 pip install --upgrade pip
@@ -76,13 +79,13 @@ pip install -r requirements-dev.txt
 pip install PyQt6
 ```
 
-### 3. Run tests:
+### 3. Run tests
 
 ```bash
 PYTHONPATH=src python -m pytest -q
 ```
 
-### 4. Install and run:
+### 4. Install and run
 
 ```bash
 # Install package (editable mode)
@@ -110,7 +113,6 @@ python -m smartcleaner.gui.main_window
 
 ## Architecture
 
-```
 smartcleaner/
 ├── plugins/          # Cleaning plugins (inherit from BasePlugin)
 │   ├── base.py       # BasePlugin abstract class
@@ -129,7 +131,6 @@ smartcleaner/
 ├── gui/              # PyQt6 GUI
 ├── db/               # SQLite operations
 └── utils/            # Logging, privilege escalation
-```
 
 See `docs/ARCHITECTURE.md` for detailed architecture overview and design decisions.
 
@@ -138,6 +139,7 @@ See `docs/ARCHITECTURE.md` for detailed architecture overview and design decisio
 Privilege escalation is centralized in `src/smartcleaner/utils/privilege.py`.
 
 To allow automated sudo for system operations (APT, kernels, journals):
+
 ```bash
 export SMARTCLEANER_ALLOW_SUDO=1
 smartcleaner clean  # Will use sudo when needed
@@ -160,6 +162,7 @@ smartcleaner clean  # Will use sudo when needed
 See `docs/ROADMAP.md` for planned features and implementation priorities.
 
 Completed in v0.2.0:
+
 - ✅ Plugin system and registry
 - ✅ 4 new cleaning plugins
 - ✅ Dry-run support
@@ -167,6 +170,7 @@ Completed in v0.2.0:
 - ✅ Structured logging
 
 Upcoming:
+
 - Progress indicators for CLI (using rich library)
 - Additional plugins (Docker, Snap cache)
 - Coverage reporting

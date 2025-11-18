@@ -7,7 +7,7 @@ from .apt_cache import APTCacheCleaner
 from .kernels import KernelCleaner
 from .browser_cache import BrowserCacheCleaner
 from .temp_files import TempFilesCleaner
-from .thumbnails import ThumbnailsCleaner
+from .thumbnails import ThumbnailCacheCleaner
 from .systemd_journals import SystemdJournalsCleaner
 
 __all__ = [
@@ -16,6 +16,6 @@ __all__ = [
     'KernelCleaner',
     'BrowserCacheCleaner',
     'TempFilesCleaner',
-    'ThumbnailsCleaner',
+    'ThumbnailCacheCleaner',
     'SystemdJournalsCleaner',
 ]

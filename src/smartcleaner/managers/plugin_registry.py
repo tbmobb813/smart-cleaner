@@ -110,7 +110,7 @@ class PluginRegistry:
         from ..plugins.kernels import KernelCleaner
         from ..plugins.browser_cache import BrowserCacheCleaner
         from ..plugins.temp_files import TempFilesCleaner
-        from ..plugins.thumbnails import ThumbnailsCleaner
+        from ..plugins.thumbnails import ThumbnailCacheCleaner
         from ..plugins.systemd_journals import SystemdJournalsCleaner
 
         # Register built-in plugins
@@ -118,7 +118,7 @@ class PluginRegistry:
         self.register_plugin_class(KernelCleaner)
         self.register_plugin_class(BrowserCacheCleaner)
         self.register_plugin_class(TempFilesCleaner)
-        self.register_plugin_class(ThumbnailsCleaner)
+        self.register_plugin_class(ThumbnailCacheCleaner)
         self.register_plugin_class(SystemdJournalsCleaner)
 
         logger.info(f"Registered {len(self._plugins)} default plugins")

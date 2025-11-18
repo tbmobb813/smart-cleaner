@@ -4,11 +4,13 @@ Cleans temporary files from /tmp and user cache directories that are older
 than a configurable threshold.
 """
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, TYPE_CHECKING
 import time
 
-from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from .base import BasePlugin
+
+if TYPE_CHECKING:
+    from ..managers.cleaner_manager import CleanableItem, SafetyLevel  # noqa: F401
 
 
 class TempFilesCleaner(BasePlugin):
@@ -38,8 +40,8 @@ class TempFilesCleaner(BasePlugin):
     def get_description(self) -> str:
         return f"Old temporary files (>{self.min_age_days} days) from /tmp and ~/.cache."
 
-    def scan(self) -> List[CleanableItem]:
-        items: List[CleanableItem] = []
+    def scan(self) -> "List[CleanableItem]":
+        items: List = []
 
         # Scan user cache directory
         user_cache = self.home_dir / '.cache'
@@ -54,9 +56,9 @@ class TempFilesCleaner(BasePlugin):
 
         return items
 
-    def _scan_directory(self, path: Path, category: str) -> List[CleanableItem]:
+    def _scan_directory(self, path: Path, category: str) -> "List[CleanableItem]":
         """Scan a directory for old temporary files."""
-        items: List[CleanableItem] = []
+        items: List = []
 
         try:
             for entry in path.rglob('*'):
@@ -70,12 +72,16 @@ class TempFilesCleaner(BasePlugin):
 
                             # Files in /tmp that are very old are safer
                             if '/tmp' in str(entry) and age_days > 30:
+                                from ..managers.cleaner_manager import SafetyLevel
                                 safety = SafetyLevel.SAFE
                             elif age_days > 14:
+                                from ..managers.cleaner_manager import SafetyLevel
                                 safety = SafetyLevel.SAFE
                             else:
+                                from ..managers.cleaner_manager import SafetyLevel
                                 safety = SafetyLevel.CAUTION
 
+                            from ..managers.cleaner_manager import CleanableItem
                             items.append(CleanableItem(
                                 path=str(entry),
                                 size=stat.st_size,
@@ -91,7 +97,7 @@ class TempFilesCleaner(BasePlugin):
 
         return items
 
-    def clean(self, items: List[CleanableItem]) -> Dict[str, Any]:
+    def clean(self, items: "List[CleanableItem]") -> Dict[str, Any]:
         result: Dict[str, Any] = {
             'success': True,
             'cleaned_count': 0,
@@ -122,7 +128,7 @@ class TempFilesCleaner(BasePlugin):
     def supports_dry_run(self) -> bool:
         return True
 
-    def clean_dry_run(self, items: List[CleanableItem]) -> Dict[str, Any]:
+    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
         return {
             'success': True,
             'cleaned_count': len(items),

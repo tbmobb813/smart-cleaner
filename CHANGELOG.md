@@ -7,6 +7,7 @@ All notable changes to this project are documented in this file.
 ### Added - Version 0.2.0 (In Development)
 
 #### Plugin System & Architecture
+
 - **BasePlugin abstract class**: Consistent interface for all cleaner plugins
 - **PluginRegistry system**: Automatic plugin discovery and management
 - **Dry-run support**: All plugins support dry-run mode to preview changes
@@ -14,6 +15,7 @@ All notable changes to this project are documented in this file.
 - **Plugin priority system**: Control execution order of plugins
 
 #### New Cleaning Plugins
+
 - **BrowserCacheCleaner**: Clean cache from Firefox, Chrome, Chromium, Brave, and Edge
 - **TempFilesCleaner**: Clean old temporary files from /tmp and ~/.cache (configurable age threshold)
 - **ThumbnailsCleaner**: Clean cached thumbnails from ~/.cache/thumbnails
@@ -21,6 +23,7 @@ All notable changes to this project are documented in this file.
 - Updated existing APTCacheCleaner and KernelCleaner to use new BasePlugin interface
 
 #### Enhanced CleanerManager
+
 - Complete rewrite from stub to fully functional orchestrator
 - Real plugin integration via PluginRegistry
 - Safety validation enforcement during all cleaning operations
@@ -29,6 +32,7 @@ All notable changes to this project are documented in this file.
 - Comprehensive error handling and logging throughout
 
 #### CLI Improvements
+
 - **New `scan` command**: Scan for cleanable items with optional plugin filtering
 - **New `clean` command**: Clean items with safety controls, dry-run, and confirmation
 - **Safety level control**: `--safety` flag (SAFE, CAUTION, ADVANCED, DANGEROUS)
@@ -42,18 +46,21 @@ All notable changes to this project are documented in this file.
 - sudo privilege warnings for system operations
 
 #### Logging & Observability
+
 - Structured logging configuration module
 - CLI-specific logging with verbosity control
 - Logging throughout managers and plugins
 - Appropriate log formatting for CLI vs library use
 
 #### Testing & Quality
+
 - Added requirements-dev.txt with development dependencies (pytest, mypy, ruff, black)
 - New test suite for PluginRegistry (8 tests)
 - New test suite for enhanced CleanerManager (10 tests)
 - Tests cover registration, scanning, cleaning, dry-run, safety filtering
 
 #### Architecture Improvements
+
 - Better separation of concerns (registry, manager, validator)
 - Consistent plugin interface across all cleaners
 - Extensible design for adding new plugins
@@ -61,12 +68,14 @@ All notable changes to this project are documented in this file.
 - Database logging for all cleaning operations
 
 ### Changed
+
 - CleanerManager completely rewritten (no longer returns stub data)
 - GUI automatically works with new CleanerManager (no changes needed)
 - Plugin system now uses discovery pattern instead of manual imports
 
 ### Files Added/Modified
-- **Added**: 8 new Python modules (base.py, 4 plugins, registry, logging_config, __init__)
+
+- **Added**: 8 new Python modules (base.py, 4 plugins, registry, logging_config, **init**)
 - **Added**: 2 new test files with 18 tests
 - **Added**: requirements-dev.txt
 - **Modified**: CleanerManager, CLI commands, existing plugins

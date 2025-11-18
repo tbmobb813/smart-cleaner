@@ -3,12 +3,14 @@
 Cleans old systemd journal logs to free up disk space.
 """
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, TYPE_CHECKING
 import re
 
-from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
 from .base import BasePlugin
+
+if TYPE_CHECKING:
+    from ..managers.cleaner_manager import CleanableItem, SafetyLevel  # noqa: F401
 
 
 class SystemdJournalsCleaner(BasePlugin):
@@ -29,8 +31,8 @@ class SystemdJournalsCleaner(BasePlugin):
     def get_description(self) -> str:
         return f"Old systemd journal logs (keeps last {self.keep_days} days)."
 
-    def scan(self) -> List[CleanableItem]:
-        items: List[CleanableItem] = []
+    def scan(self) -> "List[CleanableItem]":
+        items: List = []
 
         # Use journalctl to get disk usage info
         try:
@@ -51,6 +53,7 @@ class SystemdJournalsCleaner(BasePlugin):
                 size_bytes = int(size_value * multipliers.get(size_unit, 1))
 
                 # Create a single item representing the cleanup operation
+                from ..managers.cleaner_manager import CleanableItem, SafetyLevel
                 items.append(CleanableItem(
                     path='/var/log/journal',
                     size=size_bytes,
@@ -64,7 +67,7 @@ class SystemdJournalsCleaner(BasePlugin):
 
         return items
 
-    def clean(self, items: List[CleanableItem]) -> Dict[str, Any]:
+    def clean(self, items: "List[CleanableItem]") -> Dict[str, Any]:
         result: Dict[str, Any] = {
             'success': False,
             'cleaned_count': 0,
@@ -106,7 +109,7 @@ class SystemdJournalsCleaner(BasePlugin):
     def supports_dry_run(self) -> bool:
         return True
 
-    def clean_dry_run(self, items: List[CleanableItem]) -> Dict[str, Any]:
+    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
         return {
             'success': True,
             'cleaned_count': len(items),

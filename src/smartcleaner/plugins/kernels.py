@@ -1,9 +1,11 @@
 import re
-from typing import List, Any, Dict
+from typing import List, Any, Dict, TYPE_CHECKING
 
-from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
 from .base import BasePlugin
+
+if TYPE_CHECKING:
+    from ..managers.cleaner_manager import CleanableItem, SafetyLevel  # noqa: F401
 
 
 def version_key(version: str):
@@ -13,7 +15,8 @@ def version_key(version: str):
     numeric comparisons are used first and the original string is a tiebreaker.
     """
     nums = tuple(int(x) for x in re.findall(r'\d+', version))
-    return (nums, version)
+    # Return a flat tuple of numeric components for easy sorting/comparison
+    return nums
 
 
 class KernelCleaner(BasePlugin):
@@ -65,8 +68,8 @@ class KernelCleaner(BasePlugin):
 
         return kernels
 
-    def scan(self) -> List[CleanableItem]:
-        items: List[CleanableItem] = []
+    def scan(self) -> "List[CleanableItem]":
+        items: List = []
         try:
             kernels = self.get_installed_kernels()
 
@@ -85,6 +88,7 @@ class KernelCleaner(BasePlugin):
 
             for kernel in kernels:
                 if not kernel.get('keep', False):
+                    from ..managers.cleaner_manager import CleanableItem, SafetyLevel
                     items.append(CleanableItem(path=kernel['package'], size=kernel['size'], description=f"Old kernel: {kernel['version']}", safety=SafetyLevel.SAFE,))
 
         except Exception:
@@ -93,7 +97,7 @@ class KernelCleaner(BasePlugin):
 
         return items
 
-    def clean(self, items: List[CleanableItem]) -> dict:
+    def clean(self, items: "List[CleanableItem]") -> dict:
         result: Dict[str, Any] = {'success': True, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
         for item in items:
             try:
@@ -125,7 +129,7 @@ class KernelCleaner(BasePlugin):
         """Kernel cleaning supports dry-run mode."""
         return True
 
-    def clean_dry_run(self, items: List[CleanableItem]) -> Dict[str, Any]:
+    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
         """Report what would be cleaned without actually cleaning."""
         return {
             'success': True,
@@ -134,3 +138,29 @@ class KernelCleaner(BasePlugin):
             'errors': [],
             'dry_run': True
         }
+
+
+PLUGIN_INFO = {
+    'name': 'Old Kernels',
+    'description': 'Removes old kernel packages while keeping the current and recent backups.',
+    'module': 'smartcleaner.plugins.kernels',
+    'class': 'KernelCleaner',
+    'config': {
+        'keep_kernels': {
+            'type': 'integer',
+            'description': 'How many recent kernels to keep',
+            'min': 0,
+            'max': 50,
+            'code_default': 2,
+            'required': False
+        }
+    },
+    'constructor': {
+        'keep_kernels': {
+            'type': 'integer',
+            'default': 2,
+            'required': False,
+            'annotation': 'Optional[int]'
+        }
+    }
+}
