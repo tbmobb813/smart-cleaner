@@ -4,7 +4,6 @@ Cleans browser cache files from Firefox, Chrome, Chromium, and other common brow
 """
 from pathlib import Path
 from typing import List, Dict, Any
-import os
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from .base import BasePlugin

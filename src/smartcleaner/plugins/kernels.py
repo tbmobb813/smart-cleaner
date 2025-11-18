@@ -1,9 +1,19 @@
 import re
-from typing import List, Tuple, Any, Dict
+from typing import List, Any, Dict
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
 from .base import BasePlugin
+
+
+def version_key(version: str):
+    """
+    Create a sortable key for kernel version strings by extracting numeric components
+    and returning a tuple of (numeric_parts_tuple, original_string) so that
+    numeric comparisons are used first and the original string is a tiebreaker.
+    """
+    nums = tuple(int(x) for x in re.findall(r'\d+', version))
+    return (nums, version)
 
 
 class KernelCleaner(BasePlugin):

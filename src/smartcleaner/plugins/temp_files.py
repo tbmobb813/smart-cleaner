@@ -5,7 +5,6 @@ than a configurable threshold.
 """
 from pathlib import Path
 from typing import List, Dict, Any
-from datetime import datetime, timedelta
 import time
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel

@@ -288,7 +288,7 @@ def clean_cmd(db: Optional[str], safety: str, plugin: Optional[str], dry_run: bo
             if not sudo_allowed:
                 click.echo("Set SMARTCLEANER_ALLOW_SUDO=1 to allow automated sudo, or run commands manually.")
 
-        confirmed = click.confirm(f'\nProceed with cleaning?')
+        confirmed = click.confirm('\nProceed with cleaning?')
         if not confirmed:
             click.echo('Aborted.')
             return

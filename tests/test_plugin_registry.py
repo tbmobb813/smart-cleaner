@@ -1,5 +1,4 @@
 """Tests for the plugin registry system."""
-import pytest
 from smartcleaner.managers.plugin_registry import PluginRegistry
 from smartcleaner.plugins.base import BasePlugin
 from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
