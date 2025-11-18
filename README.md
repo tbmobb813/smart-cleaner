@@ -2,9 +2,12 @@
 
 ![CI](https://github.com/tbmobb813/smart-cleaner/actions/workflows/ci.yml/badge.svg)
 
-Version: 0.2.0-dev
+Version: 0.2.0
 
 Smart Cleaner is a modular Linux system cleaning toolkit with a focus on safety, transparency, and undo capabilities.
+
+**Supported Platforms:** Linux (tested on Ubuntu 22.04+, Debian 12+)
+**Python Versions:** 3.10, 3.11, 3.12
 
 ## Features
 

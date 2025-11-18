@@ -6,7 +6,7 @@ from smartcleaner.plugins.base import BasePlugin
 from typing import List, Dict, Any
 
 
-class TestPlugin(BasePlugin):
+class MockPluginForTesting(BasePlugin):
     """Test plugin for CleanerManager tests."""
 
     def __init__(self, name: str = "Test Plugin", items_count: int = 3):
@@ -57,8 +57,8 @@ def test_cleaner_manager_creation():
 def test_scan_all_with_plugins():
     """Test scanning all plugins."""
     registry = PluginRegistry()
-    plugin1 = TestPlugin("Plugin 1", 2)
-    plugin2 = TestPlugin("Plugin 2", 3)
+    plugin1 = MockPluginForTesting("Plugin 1", 2)
+    plugin2 = MockPluginForTesting("Plugin 2", 3)
     registry.register_plugin(plugin1)
     registry.register_plugin(plugin2)
 
@@ -110,7 +110,7 @@ def test_scan_with_safety_filter():
 def test_scan_specific_plugin():
     """Test scanning a specific plugin by name."""
     registry = PluginRegistry()
-    plugin = TestPlugin("Specific Plugin", 5)
+    plugin = MockPluginForTesting("Specific Plugin", 5)
     registry.register_plugin(plugin)
 
     manager = CleanerManager(plugin_registry=registry)
@@ -131,7 +131,7 @@ def test_scan_missing_plugin():
 def test_clean_selected():
     """Test cleaning selected items."""
     registry = PluginRegistry()
-    plugin = TestPlugin("Clean Test", 3)
+    plugin = MockPluginForTesting("Clean Test", 3)
     registry.register_plugin(plugin)
 
     manager = CleanerManager(plugin_registry=registry)
@@ -151,7 +151,7 @@ def test_clean_selected():
 def test_clean_dry_run():
     """Test dry-run cleaning."""
     registry = PluginRegistry()
-    plugin = TestPlugin("Dry Run Test", 2)
+    plugin = MockPluginForTesting("Dry Run Test", 2)
     registry.register_plugin(plugin)
 
     manager = CleanerManager(plugin_registry=registry)
@@ -178,8 +178,8 @@ def test_set_safety_level():
 def test_get_available_plugins():
     """Test getting list of available plugin names."""
     registry = PluginRegistry()
-    registry.register_plugin(TestPlugin("Plugin A"))
-    registry.register_plugin(TestPlugin("Plugin B"))
+    registry.register_plugin(MockPluginForTesting("Plugin A"))
+    registry.register_plugin(MockPluginForTesting("Plugin B"))
 
     manager = CleanerManager(plugin_registry=registry)
     available = manager.get_available_plugins()
