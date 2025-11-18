@@ -3,9 +3,10 @@ from typing import List, Any, Dict
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
+from .base import BasePlugin
 
 
-class APTCacheCleaner:
+class APTCacheCleaner(BasePlugin):
     """Cleans APT package cache located at /var/cache/apt/archives by default."""
 
     def __init__(self, cache_dir: Path = Path("/var/cache/apt/archives")):
@@ -48,3 +49,25 @@ class APTCacheCleaner:
             result['errors'].append(str(e))
 
         return result
+
+    def is_available(self) -> bool:
+        """Check if apt-get is available on this system."""
+        try:
+            privilege.run_command(['which', 'apt-get'], sudo=False)
+            return True
+        except Exception:
+            return False
+
+    def supports_dry_run(self) -> bool:
+        """APT cache cleaning supports dry-run mode."""
+        return True
+
+    def clean_dry_run(self, items: List[CleanableItem]) -> Dict[str, Any]:
+        """Report what would be cleaned without actually cleaning."""
+        return {
+            'success': True,
+            'cleaned_count': len(items),
+            'total_size': sum(i.size for i in items),
+            'errors': [],
+            'dry_run': True
+        }

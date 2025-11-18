@@ -1,12 +1,12 @@
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Any, Dict
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
-from typing import Any, Dict
+from .base import BasePlugin
 
 
-class KernelCleaner:
+class KernelCleaner(BasePlugin):
     """Removes old Linux kernels, keeping the current and most recent."""
 
     KERNELS_TO_KEEP = 2
@@ -103,3 +103,26 @@ class KernelCleaner:
             pass
 
         return result
+
+    def is_available(self) -> bool:
+        """Check if this plugin is available (requires dpkg and apt-get)."""
+        try:
+            privilege.run_command(['which', 'dpkg'], sudo=False)
+            privilege.run_command(['which', 'apt-get'], sudo=False)
+            return True
+        except Exception:
+            return False
+
+    def supports_dry_run(self) -> bool:
+        """Kernel cleaning supports dry-run mode."""
+        return True
+
+    def clean_dry_run(self, items: List[CleanableItem]) -> Dict[str, Any]:
+        """Report what would be cleaned without actually cleaning."""
+        return {
+            'success': True,
+            'cleaned_count': len(items),
+            'total_size': sum(item.size for item in items),
+            'errors': [],
+            'dry_run': True
+        }
