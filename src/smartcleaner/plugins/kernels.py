@@ -1,9 +1,47 @@
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Any, Dict
 
 from ..managers.cleaner_manager import CleanableItem, SafetyLevel
 from ..utils import privilege
-from typing import Any, Dict
+
+
+PLUGIN_INFO: Dict[str, Any] = {
+    'name': 'Old Kernels Cleaner',
+    'description': 'Detects installed linux-image packages and offers to purge older kernels while keeping the running and recent ones.',
+}
+# Extended metadata for discovery and configuration UI
+PLUGIN_INFO.update({
+    'module': 'smartcleaner.plugins.kernels',
+    'class': 'KernelCleaner',
+    'config': {
+        'keep_kernels': {
+            'type': 'int',
+            'code_default': 2,
+            'description': 'How many recent kernels to retain (the running kernel is always kept).',
+            'min': 0,
+            'max': 50,
+        }
+    },
+    'constructor': {
+        'keep': {
+            'type': 'int',
+            'default': None,
+            'description': 'How many recent kernels to keep; if null the code default is used',
+            'required': False,
+            'annotation': 'Optional[int]',
+            'min': 0,
+            'max': 50,
+        }
+    },
+})
+
+def version_key(v: str) -> Tuple[int, ...]:
+    """Return a numeric key for a version-like string by extracting integer groups.
+
+    This is a best-effort comparator that ignores non-numeric suffixes (e.g., rc1).
+    """
+    nums = re.findall(r"\d+", v)
+    return tuple(int(n) for n in nums)
 
 
 class KernelCleaner:
@@ -11,8 +49,10 @@ class KernelCleaner:
 
     KERNELS_TO_KEEP = 2
 
-    def __init__(self):
-        pass
+    def __init__(self, keep: int | None = None):
+        # allow instance-level override; fall back to class default
+        self.kernels_to_keep = int(keep) if keep is not None else self.KERNELS_TO_KEEP
+
 
     def get_name(self) -> str:
         return "Old Kernels"
@@ -48,7 +88,7 @@ class KernelCleaner:
                         'package': package_name,
                         'version': kernel_version,
                         'size': size_bytes,
-                        'is_current': kernel_version in current
+                        'is_current': kernel_version == current
                     })
 
         return kernels
@@ -57,24 +97,19 @@ class KernelCleaner:
         items: List[CleanableItem] = []
         try:
             kernels = self.get_installed_kernels()
-            # Sort by version (newest first) using packaging.version
-            # Sort by numeric components extracted from the version string (best-effort)
-            def _numeric_key(v: str) -> Tuple[int, ...]:
-                nums = re.findall(r"\d+", v)
-                return tuple(int(n) for n in nums)
 
-            kernels.sort(key=lambda k: _numeric_key(k['version']), reverse=True)
+            kernels.sort(key=lambda k: version_key(k['version']), reverse=True)
 
-            kept = 0
+            # Mark the top kernels_to_keep as kept; always keep the current kernel
+            for i, kernel in enumerate(kernels):
+                kernel['keep'] = False
+                if i < self.kernels_to_keep:
+                    kernel['keep'] = True
+
+            # Ensure current kernel is always kept
             for kernel in kernels:
-                if kernel['is_current']:
+                if kernel.get('is_current'):
                     kernel['keep'] = True
-                    kept += 1
-                elif kept < self.KERNELS_TO_KEEP:
-                    kernel['keep'] = True
-                    kept += 1
-                else:
-                    kernel['keep'] = False
 
             for kernel in kernels:
                 if not kernel.get('keep', False):
@@ -90,6 +125,7 @@ class KernelCleaner:
         result: Dict[str, Any] = {'success': True, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
         for item in items:
             try:
+                # Purge the package name
                 privilege.run_command(['apt-get', 'purge', '-y', item.path], sudo=True)
                 result['cleaned_count'] += 1
                 result['total_size'] += item.size

@@ -48,3 +48,27 @@ class APTCacheCleaner:
             result['errors'].append(str(e))
 
         return result
+
+
+PLUGIN_INFO = {
+    'name': 'APT Package Cache Cleaner',
+    'description': 'Scans and cleans APT package cache (deb files and partial downloads).',
+    'module': 'smartcleaner.plugins.apt_cache',
+    'class': 'APTCacheCleaner',
+    'config': {
+        'cache_dir': {
+            'type': 'path',
+            'description': 'Path to apt cache directory',
+            'example': '/var/cache/apt/archives'
+        }
+    },
+    'constructor': {
+        'cache_dir': {
+            'type': 'path',
+            'default': '/var/cache/apt/archives',
+            'description': 'Path to apt cache directory',
+            'required': False,
+            'annotation': 'pathlib.Path'
+        }
+    },
+}
