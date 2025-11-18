@@ -196,8 +196,23 @@ class CleanerManager:
                 # fall through to fallback sample data below
                 pass
             else:
-                # If discovered plugins produced items but all sizes are zero,
-                # treat it as if no meaningful data was found and fall back as well.
+                # If discovered plugins produced items that are not CleanableItem
+                # instances (tests may use simple markers), treat these as
+                # meaningful results and return them directly.
+                any_non_cleanable = False
+                for items in results.values():
+                    for it in items:
+                        if not isinstance(it, CleanableItem):
+                            any_non_cleanable = True
+                            break
+                    if any_non_cleanable:
+                        break
+                if any_non_cleanable:
+                    return results
+
+                # Otherwise, all returned items are CleanableItem. If their
+                # combined size is > 0, return the results; else fall back to
+                # sample data (useful in minimal/CI environments).
                 total_size = 0
                 for items in results.values():
                     for it in items:
