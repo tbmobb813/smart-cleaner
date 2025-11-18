@@ -191,7 +191,24 @@ class CleanerManager:
                 except Exception:
                     # ignore plugin errors and continue
                     results[name] = []
-            return results
+            # If every discovered plugin returned no items, fall back to sample data
+            if all((not v) for v in results.values()):
+                # fall through to fallback sample data below
+                pass
+            else:
+                # If discovered plugins produced items but all sizes are zero,
+                # treat it as if no meaningful data was found and fall back as well.
+                total_size = 0
+                for items in results.values():
+                    for it in items:
+                        try:
+                            total_size += int(it.size)
+                        except Exception:
+                            # ignore malformed sizes
+                            continue
+                if total_size > 0:
+                    return results
+                # otherwise fall through to fallback sample data
 
         # Fallback sample data when plugins aren't available
         results = {
