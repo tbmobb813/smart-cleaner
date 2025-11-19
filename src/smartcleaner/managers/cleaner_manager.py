@@ -107,7 +107,20 @@ class CleanerManager:
         for plugin in plugin_instances:
             try:
                 logger.debug(f"Scanning plugin: {plugin.get_name()}")
-                if self.plugin_isolation:
+                # Determine whether to run this plugin in isolation. Per-plugin
+                # opt-in via PLUGIN_INFO['isolate']=True overrides the global
+                # env var setting.
+                try:
+                    mod = __import__(plugin.__class__.__module__, fromlist=["PLUGIN_INFO"])
+                    pinfo = getattr(mod, "PLUGIN_INFO", None) or getattr(plugin.__class__, "PLUGIN_INFO", None)
+                except Exception:
+                    pinfo = getattr(plugin.__class__, "PLUGIN_INFO", None)
+
+                per_plugin_isolate = False
+                if isinstance(pinfo, dict):
+                    per_plugin_isolate = bool(pinfo.get("isolate", False))
+
+                if self.plugin_isolation or per_plugin_isolate:
                     # run scan in subprocess; expect a list of dicts
                     res = run_subprocess(plugin.__class__.__module__, plugin.__class__.__name__, "scan")
                     # convert dicts to CleanableItem

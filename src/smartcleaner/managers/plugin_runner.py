@@ -10,9 +10,11 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import os
 import subprocess
 import sys
 from importlib import import_module
+from pathlib import Path
 from typing import Any
 
 
@@ -36,7 +38,12 @@ def run_subprocess(plugin_dotted: str, class_name: str, method: str, timeout: in
     The subprocess invokes this module with `--worker` mode.
     """
     cmd = [sys.executable, "-m", "smartcleaner.managers.plugin_runner", "--worker", plugin_dotted, class_name, method]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    # Ensure the subprocess can import the local package (src/) by setting PYTHONPATH
+    repo_src = str(Path(__file__).resolve().parents[2])
+    env = os.environ.copy()
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = repo_src + (":" + existing if existing else "")
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
     if proc.returncode != 0:
         raise RuntimeError(f"Plugin worker failed: {proc.stderr.strip()}")
     return json.loads(proc.stdout)
@@ -61,5 +68,8 @@ def _worker_main(argv: list[str]) -> int:
 if __name__ == "__main__":
     # Worker entrypoint
     if "--worker" in sys.argv:
-        raise SystemExit(_worker_main(sys.argv))
+        # Remove the --worker marker and pass the remaining args to the worker
+        idx = sys.argv.index("--worker")
+        worker_args = [sys.argv[0]] + sys.argv[idx + 1 :]
+        raise SystemExit(_worker_main(worker_args))
     # Module used as library otherwise
