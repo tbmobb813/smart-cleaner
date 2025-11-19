@@ -32,17 +32,53 @@ def _call_plugin_method(plugin_dotted: str, class_name: str, method: str) -> Any
     return fn()
 
 
-def run_subprocess(plugin_dotted: str, class_name: str, method: str, timeout: int | None = None) -> Any:
+def _extract_json_from_output(output: str) -> Any:
+    """Find the first JSON array/object in output and parse it.
+
+    Prototype scripts may print diagnostic lines before the JSON result; this
+    helper locates the first `[` or `{` and attempts to parse from there.
+    """
+    idx = None
+    for ch in ("[", "{"):
+        i = output.find(ch)
+        if i != -1:
+            idx = i
+            break
+    if idx is None:
+        raise ValueError("No JSON found in output")
+    return json.loads(output[idx:])
+
+
+def run_subprocess(
+    plugin_dotted: str,
+    class_name: str,
+    method: str,
+    timeout: int | None = None,
+    isolation: str | None = None,
+) -> Any:
     """Run a plugin method in a subprocess and return the parsed JSON result.
 
-    The subprocess invokes this module with `--worker` mode.
+    isolation: None | 'subprocess' | 'userns' | 'container' -- when 'userns', the
+    prototype sandbox script will be used if available.
     """
-    cmd = [sys.executable, "-m", "smartcleaner.managers.plugin_runner", "--worker", plugin_dotted, class_name, method]
-    # Ensure the subprocess can import the local package (src/) by setting PYTHONPATH
+    repo_root = Path(__file__).resolve().parents[3]
     repo_src = str(Path(__file__).resolve().parents[2])
     env = os.environ.copy()
     existing = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = repo_src + (":" + existing if existing else "")
+
+    if isolation == "userns":
+        # Use the prototype sandbox wrapper script if present
+        wrapper = repo_root / "scripts" / "prototype_sandbox.sh"
+        if wrapper.exists():
+            cmd = [str(wrapper), plugin_dotted, class_name, method]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
+            if proc.returncode != 0:
+                raise RuntimeError(f"Plugin worker failed: {proc.stderr.strip()}")
+            return _extract_json_from_output(proc.stdout)
+
+    # Default: run module worker directly
+    cmd = [sys.executable, "-m", "smartcleaner.managers.plugin_runner", "--worker", plugin_dotted, class_name, method]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
     if proc.returncode != 0:
         raise RuntimeError(f"Plugin worker failed: {proc.stderr.strip()}")

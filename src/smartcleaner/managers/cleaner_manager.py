@@ -116,13 +116,23 @@ class CleanerManager:
                 except Exception:
                     pinfo = getattr(plugin.__class__, "PLUGIN_INFO", None)
 
-                per_plugin_isolate = False
+                per_plugin_isolate = None
                 if isinstance(pinfo, dict):
-                    per_plugin_isolate = bool(pinfo.get("isolate", False))
+                    per_plugin_isolate = pinfo.get("isolate", None)
 
-                if self.plugin_isolation or per_plugin_isolate:
+                # Decide isolation mode: per-plugin setting overrides global env.
+                # Support boolean True (legacy) -> 'subprocess', or string values like 'userns'.
+                isolation_mode = None
+                if per_plugin_isolate is not None:
+                    isolation_mode = "subprocess" if per_plugin_isolate is True else str(per_plugin_isolate)
+                elif self.plugin_isolation:
+                    isolation_mode = "subprocess"
+
+                if isolation_mode:
                     # run scan in subprocess; expect a list of dicts
-                    res = run_subprocess(plugin.__class__.__module__, plugin.__class__.__name__, "scan")
+                    res = run_subprocess(
+                        plugin.__class__.__module__, plugin.__class__.__name__, "scan", isolation=isolation_mode
+                    )
                     # convert dicts to CleanableItem
                     items = []
                     for it in res:

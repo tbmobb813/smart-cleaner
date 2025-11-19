@@ -18,6 +18,9 @@ if command -v unshare >/dev/null 2>&1; then
   # map-root-user will map the current user to root inside the namespace.
   # We also create a new mount & pid namespace so mounts and /proc can be isolated.
   set -x
+  # Ensure Python can import local package (src/) inside the namespace
+  REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  export PYTHONPATH="$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
   unshare --user --map-root-user --mount --pid --fork --mount-proc \
     -- bash -c "${PYTHON:-python3} -m ${WORKER_MODULE} --worker ${PLUGIN_MODULE} ${CLASS_NAME} ${METHOD}"
   set +x
