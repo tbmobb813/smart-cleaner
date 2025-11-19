@@ -147,14 +147,17 @@ jobs:
           for f in frozen:
               if '==' in f:
                   name, ver = f.split('==', 1)
-                  installed[canonicalize_name(name)] = f
+                  can = canonicalize_name(name)
+                  installed[can] = f
+                  # also store underscore-normalized key to handle pip freeze variants
+                  installed[can.replace('-', '_')] = f
 
           ok = True
           for c in constraints:
               if '==' in c:
                   name, ver = c.split('==', 1)
                   can = canonicalize_name(name)
-                  inst = installed.get(can)
+                  inst = installed.get(can) or installed.get(can.replace('-', '_'))
                   if not inst:
                       print(f'MISSING: {c} not present in frozen.txt (checked as {can})')
                       ok = False
