@@ -1,0 +1,13 @@
+black
+ruff
+mypy
+pre-commit
+pytest
+pytest-cov
+pytest-mock
+click
+tomli
+tomli_w
+tomlkit
+rich
+packaging
