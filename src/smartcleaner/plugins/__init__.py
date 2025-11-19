@@ -2,6 +2,7 @@
 
 All plugins should inherit from BasePlugin and implement the required methods.
 """
+
 from .apt_cache import APTCacheCleaner
 from .base import BasePlugin
 from .browser_cache import BrowserCacheCleaner

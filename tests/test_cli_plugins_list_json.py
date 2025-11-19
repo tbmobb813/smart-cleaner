@@ -13,7 +13,7 @@ def test_cli_plugins_list_json_contains_expected_fields():
         return
 
     runner = CliRunner()
-    result = runner.invoke(cli, ['plugins', 'list', '--json'])
+    result = runner.invoke(cli, ["plugins", "list", "--json"])
     assert result.exit_code == 0
     data = json.loads(result.output)
     assert isinstance(data, dict)
@@ -21,7 +21,6 @@ def test_cli_plugins_list_json_contains_expected_fields():
     sample = factories[0]
     assert sample in data
     entry = data[sample]
-    assert 'module' in entry
-    assert 'class' in entry
-    assert 'description' in entry
-
+    assert "module" in entry
+    assert "class" in entry
+    assert "description" in entry

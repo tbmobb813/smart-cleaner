@@ -14,5 +14,5 @@ def test_clean_selected_frees_size():
     results = mgr.scan_all()
     res = mgr.clean_selected(results, dry_run=True)
     assert isinstance(res, dict)
-    total = sum(r['total_size'] for r in res.values())
+    total = sum(r["total_size"] for r in res.values())
     assert total > 0

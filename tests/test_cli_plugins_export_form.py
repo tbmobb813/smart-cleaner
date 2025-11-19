@@ -15,7 +15,7 @@ def test_cli_plugins_export_form_generates_schema_for_kernels():
     # try to find the kernels factory if available
     kernels_factory = None
     for f in factories:
-        if f.startswith('smartcleaner.plugins.kernels'):
+        if f.startswith("smartcleaner.plugins.kernels"):
             kernels_factory = f
             break
 
@@ -23,12 +23,11 @@ def test_cli_plugins_export_form_generates_schema_for_kernels():
     factory = kernels_factory or factories[0]
 
     runner = CliRunner()
-    result = runner.invoke(cli, ['plugins', 'export-form', factory, '--json'])
+    result = runner.invoke(cli, ["plugins", "export-form", factory, "--json"])
     assert result.exit_code == 0
     data = json.loads(result.output)
     # ensure schema has properties mapping
     assert isinstance(data, dict)
-    assert data.get('type') == 'object'
-    props = data.get('properties', {})
+    assert data.get("type") == "object"
+    props = data.get("properties", {})
     assert isinstance(props, dict)
-

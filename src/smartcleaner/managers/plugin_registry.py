@@ -1,4 +1,5 @@
 """Plugin registry for automatic plugin discovery and management."""
+
 import logging
 
 from ..plugins.base import BasePlugin

@@ -111,9 +111,7 @@ class CleanerManager:
                 if items:
                     total_size = sum(item.size for item in items)
                     plugin_name = plugin.get_name()
-                    logger.info(
-                        f"Plugin '{plugin_name}' found {len(items)} items ({self._format_size(total_size)})"
-                    )
+                    logger.info(f"Plugin '{plugin_name}' found {len(items)} items ({self._format_size(total_size)})")
 
             except Exception as e:
                 logger.error(f"Error scanning plugin '{plugin.get_name()}': {e}")

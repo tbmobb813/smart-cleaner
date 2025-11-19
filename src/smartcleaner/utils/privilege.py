@@ -9,6 +9,7 @@ Safety design choices:
   accidental runs from invoking sudo. The manager/UI should explicitly ask
   for elevation and set the env variable when appropriate.
 """
+
 from __future__ import annotations
 
 import os

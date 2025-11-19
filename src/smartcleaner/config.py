@@ -10,10 +10,12 @@ tomli_w: Any = None
 # tomllib is stdlib in Python 3.11+. Fall back to tomli for older versions.
 try:
     import tomllib as _tomllib
+
     tomllib = _tomllib
 except Exception:  # pragma: no cover - platform dependent
     try:
         import tomli as _tomllib
+
         tomllib = _tomllib
     except Exception:
         tomllib = None
@@ -21,6 +23,7 @@ except Exception:  # pragma: no cover - platform dependent
 # Optionally use tomlkit for writing richer TOML with comments/order preserved
 try:
     import tomlkit as _tomlkit
+
     tomlkit = _tomlkit
 except Exception:
     tomlkit = None
@@ -29,6 +32,7 @@ except Exception:
 # Prefer tomli_w (tomli-w) for round-trip writing when available, else tomlkit
 try:
     import tomli_w as _tomli_w
+
     tomli_w = _tomli_w
 except Exception:
     tomli_w = None

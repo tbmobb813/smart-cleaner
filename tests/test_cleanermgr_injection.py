@@ -6,10 +6,10 @@ def test_injected_plugin_is_used(monkeypatch):
 
     class FakePlugin:
         def get_name(self):
-            return 'Injected Plugin'
+            return "Injected Plugin"
 
         def scan(self):
-            return ['marker']
+            return ["marker"]
 
     fake = FakePlugin()
     # Inject the plugin instance directly
@@ -18,5 +18,5 @@ def test_injected_plugin_is_used(monkeypatch):
     results = mgr.scan_all()
 
     # Our injected plugin should appear in the results and not be overwritten
-    assert 'Injected Plugin' in results
-    assert results['Injected Plugin'] == ['marker']
+    assert "Injected Plugin" in results
+    assert results["Injected Plugin"] == ["marker"]

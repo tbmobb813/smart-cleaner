@@ -3,6 +3,7 @@
 This intentionally avoids heavy ORMs to keep the dependency surface small for
 the example. The manager exposes simple methods used by tests.
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -107,9 +108,7 @@ class DatabaseManager:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        sql = (
-            "UPDATE schema_version SET version = ?, updated = ?"
-        )
+        sql = "UPDATE schema_version SET version = ?, updated = ?"
         cur.execute(sql, (int(version), datetime.utcnow().isoformat()))
         self._conn.commit()
 
@@ -217,10 +216,7 @@ class DatabaseManager:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        sql = (
-            "UPDATE undo_log SET restored = ?, restored_timestamp = ?, restore_error = ? "
-            "WHERE id = ?"
-        )
+        sql = "UPDATE undo_log SET restored = ?, restored_timestamp = ?, restore_error = ? WHERE id = ?"
         cur.execute(sql, (int(success), ts, error_message, undo_id))
         self._conn.commit()
 

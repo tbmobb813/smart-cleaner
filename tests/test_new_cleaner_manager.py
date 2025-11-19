@@ -1,4 +1,5 @@
 """Tests for the updated CleanerManager with plugin orchestration."""
+
 from typing import Any
 
 import pytest
@@ -27,10 +28,7 @@ class MockPluginForTesting(BasePlugin):
         self.scan_called = True
         return [
             CleanableItem(
-                path=f"/tmp/test_{i}",
-                size=1024 * (i + 1),
-                description=f"Test item {i}",
-                safety=SafetyLevel.SAFE
+                path=f"/tmp/test_{i}", size=1024 * (i + 1), description=f"Test item {i}", safety=SafetyLevel.SAFE
             )
             for i in range(self.items_count)
         ]
@@ -38,10 +36,10 @@ class MockPluginForTesting(BasePlugin):
     def clean(self, items: list[CleanableItem]) -> dict[str, Any]:
         self.clean_called = True
         return {
-            'success': True,
-            'cleaned_count': len(items),
-            'total_size': sum(item.size for item in items),
-            'errors': []
+            "success": True,
+            "cleaned_count": len(items),
+            "total_size": sum(item.size for item in items),
+            "errors": [],
         }
 
     def supports_dry_run(self) -> bool:
@@ -95,7 +93,7 @@ def test_scan_with_safety_filter():
             ]
 
         def clean(self, items: list[CleanableItem]) -> dict[str, Any]:
-            return {'success': True, 'cleaned_count': len(items), 'total_size': 0, 'errors': []}
+            return {"success": True, "cleaned_count": len(items), "total_size": 0, "errors": []}
 
     registry.register_plugin(MixedSafetyPlugin())
     manager = CleanerManager(plugin_registry=registry)
@@ -139,11 +137,7 @@ def test_clean_selected():
     manager = CleanerManager(plugin_registry=registry)
     items = manager.scan_plugin("Clean Test")
 
-    results = manager.clean_selected(
-        {"Clean Test": items},
-        dry_run=False,
-        enforce_safety=False
-    )
+    results = manager.clean_selected({"Clean Test": items}, dry_run=False, enforce_safety=False)
 
     assert results["Clean Test"]["success"]
     assert results["Clean Test"]["cleaned_count"] == 3
@@ -159,10 +153,7 @@ def test_clean_dry_run():
     manager = CleanerManager(plugin_registry=registry)
     items = manager.scan_plugin("Dry Run Test")
 
-    results = manager.clean_selected(
-        {"Dry Run Test": items},
-        dry_run=True
-    )
+    results = manager.clean_selected({"Dry Run Test": items}, dry_run=True)
 
     assert results["Dry Run Test"]["success"]
     assert results["Dry Run Test"].get("dry_run") is True

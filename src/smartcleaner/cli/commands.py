@@ -241,8 +241,8 @@ def scan_cmd(db: str | None, safety: str, plugin: str | None):
             click.echo(f"Subtotal: {click.style(_human_size(plugin_total), fg='yellow')}")
             grand_total += plugin_total
 
-        title = click.style('Grand Total:', bold=True)
-        value = click.style(_human_size(grand_total), fg='yellow', bold=True)
+        title = click.style("Grand Total:", bold=True)
+        value = click.style(_human_size(grand_total), fg="yellow", bold=True)
         click.echo(f"\n{title} {value}")
 
 
@@ -441,7 +441,7 @@ def clean_browser_cache(base_dir: str | None, dry_run: bool, yes: bool):
     results = mgr.clean_selected({plugin.get_name(): items}, dry_run=False)
     res = results.get(plugin.get_name(), {})
     if res.get("success"):
-        click.echo(f"Cleaned {res.get('cleaned_count',0)} items, freed {_human_size(res.get('total_size',0))}")
+        click.echo(f"Cleaned {res.get('cleaned_count', 0)} items, freed {_human_size(res.get('total_size', 0))}")
     else:
         click.echo(f"Errors: {res.get('errors')}")
 
@@ -476,7 +476,7 @@ def clean_thumbnails(cache_dir: str | None, dry_run: bool, yes: bool):
     results = mgr.clean_selected({plugin.get_name(): items}, dry_run=False)
     res = results.get(plugin.get_name(), {})
     if res.get("success"):
-        click.echo(f"Cleaned {res.get('cleaned_count',0)} items, freed {_human_size(res.get('total_size',0))}")
+        click.echo(f"Cleaned {res.get('cleaned_count', 0)} items, freed {_human_size(res.get('total_size', 0))}")
     else:
         click.echo(f"Errors: {res.get('errors')}")
 
@@ -504,14 +504,14 @@ def clean_tmp(base_dir: str | None, dry_run: bool, yes: bool):
         return
 
     if not yes:
-        if not click.confirm(f'Proceed to clean temporary files in {base or "/tmp"}?'):
+        if not click.confirm(f"Proceed to clean temporary files in {base or '/tmp'}?"):
             click.echo("Aborted.")
             return
 
     results = mgr.clean_selected({plugin.get_name(): items}, dry_run=False)
     res = results.get(plugin.get_name(), {})
     if res.get("success"):
-        click.echo(f"Cleaned {res.get('cleaned_count',0)} items, freed {_human_size(res.get('total_size',0))}")
+        click.echo(f"Cleaned {res.get('cleaned_count', 0)} items, freed {_human_size(res.get('total_size', 0))}")
     else:
         click.echo(f"Errors: {res.get('errors')}")
 

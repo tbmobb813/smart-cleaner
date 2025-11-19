@@ -14,7 +14,7 @@ def test_discovery_metadata_serializable():
     # pick one entry and verify expected keys
     sample_key = next(iter(meta.keys()))
     entry = meta[sample_key]
-    assert 'module' in entry
-    assert 'class' in entry
-    assert 'class_path' in entry
+    assert "module" in entry
+    assert "class" in entry
+    assert "class_path" in entry
     # plugin_info may be None or dict

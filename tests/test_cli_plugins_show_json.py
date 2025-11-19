@@ -14,11 +14,11 @@ def test_cli_plugins_show_json_output():
 
     factory = factories[0]
     runner = CliRunner()
-    result = runner.invoke(cli, ['plugins', 'show', factory, '--json'])
+    result = runner.invoke(cli, ["plugins", "show", factory, "--json"])
     assert result.exit_code == 0
     # Validate that output is valid JSON and contains expected keys
     data = json.loads(result.output)
-    assert data.get('factory_key') == factory
-    assert 'plugin_info' in data
-    assert 'class' in data
-    assert 'constructor' in data
+    assert data.get("factory_key") == factory
+    assert "plugin_info" in data
+    assert "class" in data
+    assert "constructor" in data

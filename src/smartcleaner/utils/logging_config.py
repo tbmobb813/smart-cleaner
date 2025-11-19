@@ -3,6 +3,7 @@
 Provides centralized logging setup with optional file output and different
 verbosity levels for CLI and library use.
 """
+
 import logging
 import sys
 from pathlib import Path

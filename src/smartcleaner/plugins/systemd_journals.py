@@ -2,6 +2,7 @@
 
 Cleans old systemd journal logs to free up disk space.
 """
+
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any

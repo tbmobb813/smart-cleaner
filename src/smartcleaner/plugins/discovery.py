@@ -3,6 +3,7 @@
 This module exposes small helpers that wrap `CleanerManager` discovery so
 consumers don't need to instantiate the manager directly.
 """
+
 from typing import Any
 
 from smartcleaner.managers.cleaner_manager import CleanerManager

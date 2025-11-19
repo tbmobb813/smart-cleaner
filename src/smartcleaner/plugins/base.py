@@ -2,6 +2,7 @@
 
 All plugins should inherit from BasePlugin to ensure a consistent interface.
 """
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 

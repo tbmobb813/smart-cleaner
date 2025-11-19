@@ -2,6 +2,7 @@
 
 Cleans browser cache files from Firefox, Chrome, Chromium, and other common browsers.
 """
+
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
