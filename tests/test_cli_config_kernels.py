@@ -17,17 +17,17 @@ def test_cli_uses_config_when_flag_missing(monkeypatch):
         def get_name(self):
             return "Old Kernels"
 
-            def scan(self):
-                from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
+        def scan(self):
+            from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
 
-                return [
-                    CleanableItem(
-                        path="linux-image-1",
-                        size=1024,
-                        description="Old kernel: 1",
-                        safety=SafetyLevel.SAFE,
-                    )
-                ]
+            return [
+                CleanableItem(
+                    path="linux-image-1",
+                    size=1024,
+                    description="Old kernel: 1",
+                    safety=SafetyLevel.SAFE,
+                )
+            ]
 
         def clean(self, items):
             return {"success": True, "cleaned_count": len(items), "total_size": sum(i.size for i in items)}
