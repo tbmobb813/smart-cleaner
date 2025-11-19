@@ -123,6 +123,10 @@ jobs:
           fi
           # Install dev extras using the constraints file
           pip install -e ".[dev]" -c requirements-dev-constraints.txt
+          # Ensure pinned dev tools from the constraints file are installed (covers tools not pulled by extras)
+          if [ -f requirements-dev-constraints.txt ]; then
+            pip install -r requirements-dev-constraints.txt -c requirements-dev-constraints.txt || true
+          fi
           pip freeze > frozen.txt
 
       - name: Validate constraints match installed dev versions
