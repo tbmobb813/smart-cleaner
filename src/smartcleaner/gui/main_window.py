@@ -30,8 +30,11 @@ except Exception:
 
 # Provide a typing-friendly alias for the base QMainWindow so mypy has a stable
 # symbol to check against even when PyQt6 isn't installed at runtime.
+from typing import Any
+
 if TYPE_CHECKING:
-    from PyQt6.QtWidgets import QMainWindow as _QMainWindow
+    # Avoid importing PyQt6 during type-checking in environments without stubs.
+    _QMainWindow: Any
 else:
     _QMainWindow = QMainWindow
 

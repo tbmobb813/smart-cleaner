@@ -22,8 +22,7 @@ except Exception:  # pragma: no cover - platform dependent
 
 # Optionally use tomlkit for writing richer TOML with comments/order preserved
 try:
-    import tomlkit as _tomlkit
-
+    _tomlkit = importlib.import_module("tomlkit")
     tomlkit = _tomlkit
 except Exception:
     tomlkit = None
@@ -31,8 +30,7 @@ except Exception:
 
 # Prefer tomli_w (tomli-w) for round-trip writing when available, else tomlkit
 try:
-    import tomli_w as _tomli_w
-
+    _tomli_w = importlib.import_module("tomli_w")
     tomli_w = _tomli_w
 except Exception:
     tomli_w = None
