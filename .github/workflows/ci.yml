@@ -133,6 +133,8 @@ jobs:
         run: |
           python - <<'PY'
           import sys
+          from packaging.utils import canonicalize_name
+
           def read_lines(path):
               with open(path) as f:
                   return [l.strip() for l in f if l.strip() and not l.strip().startswith('#')]
@@ -140,17 +142,26 @@ jobs:
           constraints = read_lines('requirements-dev-constraints.txt')
           frozen = read_lines('frozen.txt')
 
+          # Build a map from canonical package name -> installed spec
+          installed = {}
+          for f in frozen:
+              if '==' in f:
+                  name, ver = f.split('==', 1)
+                  installed[canonicalize_name(name)] = f
+
           ok = True
           for c in constraints:
               if '==' in c:
-                  pkg = c.split('==', 1)[0].lower()
-                  matches = [f for f in frozen if f.lower().startswith(pkg + '==')]
-                  if not matches:
-                      print(f'MISSING: {c} not present in frozen.txt')
+                  name, ver = c.split('==', 1)
+                  can = canonicalize_name(name)
+                  inst = installed.get(can)
+                  if not inst:
+                      print(f'MISSING: {c} not present in frozen.txt (checked as {can})')
                       ok = False
-                  elif c.lower() not in [m.lower() for m in matches]:
-                      print(f'MISMATCH: constraint {c} != installed {matches[0]}')
-                      ok = False
+                  else:
+                      if inst.lower() != c.lower():
+                          print(f'MISMATCH: constraint {c} != installed {inst}')
+                          ok = False
 
           if not ok:
               print('\nConstraints validation failed. If you intentionally updated dev deps, regenerate requirements-dev-constraints.txt and update the PR.')
