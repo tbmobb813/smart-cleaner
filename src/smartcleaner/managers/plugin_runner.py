@@ -77,6 +77,15 @@ def run_subprocess(
                 raise RuntimeError(f"Plugin worker failed: {proc.stderr.strip()}")
             return _extract_json_from_output(proc.stdout)
 
+    if isolation in ("bwrap", "bubblewrap"):
+        wrapper = repo_root / "scripts" / "prototype_bwrap.sh"
+        if wrapper.exists():
+            cmd = [str(wrapper), plugin_dotted, class_name, method]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
+            if proc.returncode != 0:
+                raise RuntimeError(f"Plugin worker failed: {proc.stderr.strip()}")
+            return _extract_json_from_output(proc.stdout)
+
     # Default: run module worker directly
     cmd = [sys.executable, "-m", "smartcleaner.managers.plugin_runner", "--worker", plugin_dotted, class_name, method]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
