@@ -98,3 +98,54 @@ jobs:
       - name: Run tests
         run: |
           PYTHONPATH=src pytest -v
+
+  validate-constraints:
+    name: Validate dev constraints
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Create venv and install dev extras with constraints
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          # Install dev extras using the constraints file
+          pip install -e ".[dev]" -c requirements-dev-constraints.txt
+          pip freeze > frozen.txt
+
+      - name: Validate constraints match installed dev versions
+        run: |
+          python - <<'PY'
+          import sys
+          def read_lines(path):
+              with open(path) as f:
+                  return [l.strip() for l in f if l.strip() and not l.strip().startswith('#')]
+
+          constraints = read_lines('requirements-dev-constraints.txt')
+          frozen = read_lines('frozen.txt')
+
+          ok = True
+          for c in constraints:
+              if '==' in c:
+                  pkg = c.split('==', 1)[0].lower()
+                  matches = [f for f in frozen if f.lower().startswith(pkg + '==')]
+                  if not matches:
+                      print(f'MISSING: {c} not present in frozen.txt')
+                      ok = False
+                  elif c.lower() not in [m.lower() for m in matches]:
+                      print(f'MISMATCH: constraint {c} != installed {matches[0]}')
+                      ok = False
+
+          if not ok:
+              print('\nConstraints validation failed. If you intentionally updated dev deps, regenerate requirements-dev-constraints.txt and update the PR.')
+              sys.exit(1)
+          print('OK: requirements-dev-constraints.txt matches installed dev versions')
+          PY
