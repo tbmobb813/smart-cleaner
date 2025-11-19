@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Any
+import importlib
 
 # Optional TOML libraries (module or None)
 tomllib: Any = None
@@ -8,8 +9,6 @@ tomlkit: Any = None
 tomli_w: Any = None
 
 # tomllib is stdlib in Python 3.11+. Fall back to tomli for older versions.
-import importlib
-
 try:
     _tomllib = importlib.import_module("tomllib")
     tomllib = _tomllib
