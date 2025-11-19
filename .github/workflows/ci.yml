@@ -98,3 +98,38 @@ jobs:
       - name: Run tests
         run: |
           PYTHONPATH=src pytest -v
+
+  validate-constraints:
+    name: Validate dev constraints
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Create venv and install runtime + dev extras with constraints
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          # First install runtime requirements so runtime extras (rich, tomlkit, etc.) are present
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -c requirements-dev-constraints.txt || true
+          fi
+          # Install dev extras using the constraints file
+          pip install -e ".[dev]" -c requirements-dev-constraints.txt
+          # Ensure pinned dev tools from the constraints file are installed (covers tools not pulled by extras)
+          if [ -f requirements-dev-constraints.txt ]; then
+            pip install -r requirements-dev-constraints.txt -c requirements-dev-constraints.txt || true
+          fi
+          pip freeze > frozen.txt
+
+      - name: Validate constraints match installed dev versions
+        run: |
+          . .venv/bin/activate
+          python scripts/validate-constraints.py requirements-dev-constraints.txt frozen.txt
