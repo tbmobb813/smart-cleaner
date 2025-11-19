@@ -1,7 +1,7 @@
+import importlib
 import os
 from pathlib import Path
 from typing import Any
-import importlib
 
 # Optional TOML libraries (module or None)
 tomllib: Any = None
