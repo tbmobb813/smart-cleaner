@@ -38,10 +38,13 @@ jobs:
           pip install -e .
           pip install -r requirements-dev.txt
 
-      - name: Run linter (ruff)
+      - name: Run linter (ruff) and formatter (black)
         run: |
-          ruff check src tests --output-format=github
-          ruff format --check src tests
+          # Use consistent line length (120) to match project formatting
+          ruff check --line-length 120 src tests --output-format=github
+          ruff format --check --line-length 120 src tests
+          # Black enforces formatting; run in check mode with same line length
+          black --check --line-length 120 src tests
 
       - name: Run type checker (mypy)
         run: |
