@@ -1,4 +1,4 @@
-from smartcleaner.managers.cleaner_manager import CleanerManager, CleanableItem, SafetyLevel
+from smartcleaner.managers.cleaner_manager import CleanableItem, CleanerManager, SafetyLevel
 
 
 def test_clean_selected_logs_operation(monkeypatch):
@@ -11,7 +11,7 @@ def test_clean_selected_logs_operation(monkeypatch):
             return [CleanableItem(path="/tmp/fake", size=1024, description="fake", safety=SafetyLevel.SAFE)]
 
         def clean(self, items):
-            return {'success': True, 'cleaned_count': len(items), 'total_size': sum(i.size for i in items)}
+            return {"success": True, "cleaned_count": len(items), "total_size": sum(i.size for i in items)}
 
     plugin = FakePlugin()
 
@@ -24,7 +24,7 @@ def test_clean_selected_logs_operation(monkeypatch):
         calls.append((plugin_name, items))
         return 999
 
-    monkeypatch.setattr(undo_mod.UndoManager, 'log_operation', fake_log)
+    monkeypatch.setattr(undo_mod.UndoManager, "log_operation", fake_log)
 
     mgr = CleanerManager()
     # Inject our fake plugin instance
@@ -37,5 +37,5 @@ def test_clean_selected_logs_operation(monkeypatch):
     assert len(calls) == 1
     assert calls[0][0] == plugin.get_name()
     res = results.get(plugin.get_name(), {})
-    assert res.get('success') is True
-    assert res.get('operation_id') == 999
+    assert res.get("success") is True
+    assert res.get("operation_id") == 999

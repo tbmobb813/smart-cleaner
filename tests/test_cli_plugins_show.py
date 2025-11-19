@@ -13,9 +13,9 @@ def test_cli_plugins_show_first_factory():
 
     factory = factories[0]
     runner = CliRunner()
-    result = runner.invoke(cli, ['plugins', 'show', factory])
+    result = runner.invoke(cli, ["plugins", "show", factory])
     assert result.exit_code == 0
     # output may include the class name rather than the factory key; assert at least
     # the class short name is present
-    class_name = factory.split(':', 1)[-1]
+    class_name = factory.split(":", 1)[-1]
     assert class_name in result.output

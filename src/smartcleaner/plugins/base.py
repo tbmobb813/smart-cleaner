@@ -2,8 +2,9 @@
 
 All plugins should inherit from BasePlugin to ensure a consistent interface.
 """
+
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # Avoid runtime import to prevent circular imports; used only for type checking
@@ -30,7 +31,7 @@ class BasePlugin(ABC):
         pass
 
     @abstractmethod
-    def scan(self) -> "List[CleanableItem]":
+    def scan(self) -> "list[CleanableItem]":
         """Scan for cleanable items and return a list of CleanableItem instances.
 
         This method should not modify any files, only identify what can be cleaned.
@@ -41,7 +42,7 @@ class BasePlugin(ABC):
         pass
 
     @abstractmethod
-    def clean(self, items: "List[CleanableItem]") -> Dict[str, Any]:
+    def clean(self, items: "list[CleanableItem]") -> dict[str, Any]:
         """Clean the specified items.
 
         Args:
@@ -66,7 +67,7 @@ class BasePlugin(ABC):
         """
         return False
 
-    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
+    def clean_dry_run(self, items: "list[CleanableItem]") -> dict[str, Any]:
         """Perform a dry-run clean operation.
 
         This should report what would be cleaned without actually cleaning.
@@ -79,11 +80,11 @@ class BasePlugin(ABC):
             Same structure as clean() method.
         """
         return {
-            'success': True,
-            'cleaned_count': len(items),
-            'total_size': sum(item.size for item in items),
-            'errors': [],
-            'dry_run': True
+            "success": True,
+            "cleaned_count": len(items),
+            "total_size": sum(item.size for item in items),
+            "errors": [],
+            "dry_run": True,
         }
 
     def is_available(self) -> bool:

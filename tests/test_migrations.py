@@ -1,21 +1,23 @@
 import sqlite3
 
-from smartcleaner.db.operations import DatabaseManager, CURRENT_SCHEMA_VERSION
+from smartcleaner.db.operations import CURRENT_SCHEMA_VERSION, DatabaseManager
 
 
 def test_migration_from_old_schema(tmp_path):
     # create a DB with no schema_version table to simulate old DB
-    db_path = tmp_path / 'old.db'
+    db_path = tmp_path / "old.db"
     conn = sqlite3.connect(str(db_path))
     cur = conn.cursor()
     # create only the clean_operations table to simulate very old schema
-    cur.execute('''
+    cur.execute(
+        """
     CREATE TABLE clean_operations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT,
         plugin_name TEXT NOT NULL
     )
-    ''')
+    """
+    )
     conn.commit()
     conn.close()
 

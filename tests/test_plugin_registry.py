@@ -1,8 +1,10 @@
 """Tests for the plugin registry system."""
+
+from typing import Any
+
+from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
 from smartcleaner.managers.plugin_registry import PluginRegistry
 from smartcleaner.plugins.base import BasePlugin
-from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
-from typing import List, Dict, Any
 
 
 class MockPlugin(BasePlugin):
@@ -14,22 +16,15 @@ class MockPlugin(BasePlugin):
     def get_description(self) -> str:
         return "A mock plugin for testing"
 
-    def scan(self) -> List[CleanableItem]:
-        return [
-            CleanableItem(
-                path="/tmp/test",
-                size=1024,
-                description="Test item",
-                safety=SafetyLevel.SAFE
-            )
-        ]
+    def scan(self) -> list[CleanableItem]:
+        return [CleanableItem(path="/tmp/test", size=1024, description="Test item", safety=SafetyLevel.SAFE)]
 
-    def clean(self, items: List[CleanableItem]) -> Dict[str, Any]:
+    def clean(self, items: list[CleanableItem]) -> dict[str, Any]:
         return {
-            'success': True,
-            'cleaned_count': len(items),
-            'total_size': sum(item.size for item in items),
-            'errors': []
+            "success": True,
+            "cleaned_count": len(items),
+            "total_size": sum(item.size for item in items),
+            "errors": [],
         }
 
 

@@ -2,7 +2,7 @@ import subprocess
 
 
 def test_cli_module_list(tmp_path):
-    db_path = tmp_path / 'cli_int.db'
+    db_path = tmp_path / "cli_int.db"
     # Call the CLI module directly via the python -m entrypoint
     cmd = ["/usr/bin/python3", "-m", "smartcleaner.cli.commands", "list", "--db", str(db_path)]
     env = {**dict(PATH="/usr/bin"), "PYTHONPATH": "src"}

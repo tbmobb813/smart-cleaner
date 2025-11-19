@@ -9,19 +9,27 @@ Safety design choices:
   accidental runs from invoking sudo. The manager/UI should explicitly ask
   for elevation and set the env variable when appropriate.
 """
+
 from __future__ import annotations
 
 import os
 import shlex
 import subprocess
-from typing import Sequence, Optional
+from collections.abc import Sequence
 
 
 def _allow_sudo_from_env() -> bool:
-    return os.environ.get('SMARTCLEANER_ALLOW_SUDO', '') not in ('', '0', 'false', 'False')
+    return os.environ.get("SMARTCLEANER_ALLOW_SUDO", "") not in ("", "0", "false", "False")
 
 
-def run_command(cmd: Sequence[str], sudo: bool = False, check: bool = True, capture_output: bool = True, text: bool = True, env: Optional[dict] = None) -> subprocess.CompletedProcess:
+def run_command(
+    cmd: Sequence[str],
+    sudo: bool = False,
+    check: bool = True,
+    capture_output: bool = True,
+    text: bool = True,
+    env: dict | None = None,
+) -> subprocess.CompletedProcess:
     """Run a command, optionally via sudo.
 
     Security: we only prepend 'sudo' when `sudo` is True and the environment
@@ -36,7 +44,7 @@ def run_command(cmd: Sequence[str], sudo: bool = False, check: bool = True, capt
         if not _allow_sudo_from_env():
             raise PermissionError("Sudo not allowed: set SMARTCLEANER_ALLOW_SUDO=1 to permit elevation")
         # Prepend sudo in a safe manner
-        cmd_list = ['sudo', '-n'] + cmd_list
+        cmd_list = ["sudo", "-n"] + cmd_list
 
     # Use subprocess.run directly
     return subprocess.run(cmd_list, check=check, capture_output=capture_output, text=text, env=env)
@@ -44,5 +52,5 @@ def run_command(cmd: Sequence[str], sudo: bool = False, check: bool = True, capt
 
 def render_command(cmd: Sequence[str], sudo: bool = False) -> str:
     """Return a shell-safe string representation of the command for logging or dry-run."""
-    prefix = ['sudo', '-n'] if sudo else []
-    return ' '.join(shlex.quote(p) for p in (prefix + list(cmd)))
+    prefix = ["sudo", "-n"] if sudo else []
+    return " ".join(shlex.quote(p) for p in (prefix + list(cmd)))

@@ -2,20 +2,21 @@
 
 All plugins should inherit from BasePlugin and implement the required methods.
 """
-from .base import BasePlugin
+
 from .apt_cache import APTCacheCleaner
-from .kernels import KernelCleaner
+from .base import BasePlugin
 from .browser_cache import BrowserCacheCleaner
+from .kernels import KernelCleaner
+from .systemd_journals import SystemdJournalsCleaner
 from .temp_files import TempFilesCleaner
 from .thumbnails import ThumbnailCacheCleaner
-from .systemd_journals import SystemdJournalsCleaner
 
 __all__ = [
-    'BasePlugin',
-    'APTCacheCleaner',
-    'KernelCleaner',
-    'BrowserCacheCleaner',
-    'TempFilesCleaner',
-    'ThumbnailCacheCleaner',
-    'SystemdJournalsCleaner',
+    "BasePlugin",
+    "APTCacheCleaner",
+    "KernelCleaner",
+    "BrowserCacheCleaner",
+    "TempFilesCleaner",
+    "ThumbnailCacheCleaner",
+    "SystemdJournalsCleaner",
 ]
