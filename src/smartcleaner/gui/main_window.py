@@ -1,6 +1,7 @@
-import sys
 import importlib
+import sys
 from typing import TYPE_CHECKING
+
 try:
     qt_widgets = importlib.import_module("PyQt6.QtWidgets")
     QApplication = qt_widgets.QApplication
@@ -34,6 +35,7 @@ else:
     _QMainWindow = QMainWindow
 
 from ..managers.cleaner_manager import CleanerManager
+
 
 class MainWindow(_QMainWindow):
     """Minimal main window for the Smart Cleaner GUI skeleton."""

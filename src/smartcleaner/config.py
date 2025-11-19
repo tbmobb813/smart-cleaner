@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # tomllib is stdlib in Python 3.11+. Fall back to tomli for older versions.
 try:
@@ -51,7 +51,7 @@ def load_config() -> dict[str, Any]:
     return {}
 
 
-def get_keep_kernels(default: Optional[int] = None) -> Optional[int]:
+def get_keep_kernels(default: int | None = None) -> int | None:
     """Return configured keep_kernels value.
 
     Precedence: environment SMARTCLEANER_KEEP_KERNELS > config file > default
@@ -74,7 +74,7 @@ def get_keep_kernels(default: Optional[int] = None) -> Optional[int]:
     return default
 
 
-def get_db_path(default: Optional[str] = None) -> Optional[str]:
+def get_db_path(default: str | None = None) -> str | None:
     env = os.getenv('SMARTCLEANER_DB_PATH')
     if env:
         return env

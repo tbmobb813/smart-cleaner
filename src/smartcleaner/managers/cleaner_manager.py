@@ -1,13 +1,13 @@
-from dataclasses import dataclass
-from typing import List, Dict, Optional, Any, Type
-from enum import IntEnum
 import logging
+from dataclasses import dataclass
+from enum import IntEnum
+from typing import Any
 
+from ..db.operations import DatabaseManager
+from ..plugins.base import BasePlugin
 from .plugin_registry import PluginRegistry, get_default_registry
 from .safety_validator import SafetyValidator
 from .undo_manager import UndoManager
-from ..db.operations import DatabaseManager
-from ..plugins.base import BasePlugin
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +46,10 @@ class CleanerManager:
 
     def __init__(
         self,
-        plugin_registry: Optional[PluginRegistry] = None,
-        safety_validator: Optional[SafetyValidator] = None,
-        undo_manager: Optional[UndoManager] = None,
-        db_manager: Optional[DatabaseManager] = None
+        plugin_registry: PluginRegistry | None = None,
+        safety_validator: SafetyValidator | None = None,
+        undo_manager: UndoManager | None = None,
+        db_manager: DatabaseManager | None = None
     ):
         """Initialize the CleanerManager.
 
@@ -61,9 +61,9 @@ class CleanerManager:
         """
         self.registry = plugin_registry or get_default_registry()
         # Mirror of plugin instances for easy injection and testability
-        self.plugins: Dict[str, BasePlugin] = {p.get_name(): p for p in self.registry.get_all_plugins()}
+        self.plugins: dict[str, BasePlugin] = {p.get_name(): p for p in self.registry.get_all_plugins()}
         # mapping of factory keys (module:Class) to class objects when discoverable
-        self.plugin_factories: Dict[str, Optional[Type[BasePlugin]]] = {}
+        self.plugin_factories: dict[str, type[BasePlugin] | None] = {}
         try:
             # populate plugin_factories lazily from available factories
             for fk in self.list_available_factories():
@@ -81,7 +81,7 @@ class CleanerManager:
         self.db = db_manager or DatabaseManager()
         self.undo_manager = undo_manager or UndoManager(db=self.db)
 
-    def scan_all(self, safety_filter: Optional[SafetyLevel] = None) -> Dict[str, List[CleanableItem]]:
+    def scan_all(self, safety_filter: SafetyLevel | None = None) -> dict[str, list[CleanableItem]]:
         """Scan all available plugins and return cleanable items.
 
         Args:
@@ -125,14 +125,14 @@ class CleanerManager:
         """Refresh the internal `plugins` mapping from the registry."""
         self.plugins = {p.get_name(): p for p in self.registry.get_all_plugins()}
 
-    def list_available_factories(self) -> List[str]:
+    def list_available_factories(self) -> list[str]:
         """Return a list of available plugin factory module names (e.g., smartcleaner.plugins.kernels).
 
         This inspects the `smartcleaner.plugins` package for .py files and returns importable module names.
         """
         from pathlib import Path
         pkg_dir = Path(__file__).parent.parent / 'plugins'
-        keys: List[str] = []
+        keys: list[str] = []
         if not pkg_dir.exists():
             return keys
         for p in pkg_dir.glob('*.py'):
@@ -171,12 +171,12 @@ class CleanerManager:
                 keys.append(f"{module}:{cls_name}")
         return keys
 
-    def get_factories_metadata(self) -> Dict[str, Dict[str, Any]]:
+    def get_factories_metadata(self) -> dict[str, dict[str, Any]]:
         """Return metadata about available plugin factories keyed by module name.
 
         Each entry includes: module, class, class_obj (if loadable), plugin_info (module.PLUGIN_INFO or None), description.
         """
-        out: Dict[str, Dict[str, Any]] = {}
+        out: dict[str, dict[str, Any]] = {}
         for factory_key in self.list_available_factories():
             # factory_key is module:Class
             module_name, class_name = factory_key.split(':', 1)
@@ -212,7 +212,7 @@ class CleanerManager:
             }
         return out
 
-    def scan_plugin(self, plugin_name: str, safety_filter: Optional[SafetyLevel] = None) -> List[CleanableItem]:
+    def scan_plugin(self, plugin_name: str, safety_filter: SafetyLevel | None = None) -> list[CleanableItem]:
         """Scan a specific plugin by name.
 
         Args:
@@ -242,10 +242,10 @@ class CleanerManager:
 
     def clean_selected(
         self,
-        items_by_plugin: Dict[str, List[CleanableItem]],
+        items_by_plugin: dict[str, list[CleanableItem]],
         dry_run: bool = False,
         enforce_safety: bool = True
-    ) -> Dict[str, Dict]:
+    ) -> dict[str, dict]:
         """Clean selected items across multiple plugins.
 
         Args:
@@ -363,7 +363,7 @@ class CleanerManager:
         self.safety_validator.set_max_level(level)
         logger.info(f"Safety level set to: {level.name}")
 
-    def get_available_plugins(self) -> List[str]:
+    def get_available_plugins(self) -> list[str]:
         """Get names of all available plugins.
 
         Returns:

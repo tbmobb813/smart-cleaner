@@ -6,14 +6,13 @@ verbosity levels for CLI and library use.
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
 
 def setup_logging(
     level: int = logging.INFO,
-    log_file: Optional[Path] = None,
+    log_file: Path | None = None,
     console_output: bool = True,
-    format_string: Optional[str] = None
+    format_string: str | None = None
 ) -> None:
     """Configure logging for Smart Cleaner.
 

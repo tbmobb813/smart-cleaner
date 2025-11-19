@@ -1,5 +1,4 @@
 """Plugin registry for automatic plugin discovery and management."""
-from typing import List, Dict, Type, Optional
 import logging
 
 from ..plugins.base import BasePlugin
@@ -15,8 +14,8 @@ class PluginRegistry:
     """
 
     def __init__(self):
-        self._plugins: Dict[str, BasePlugin] = {}
-        self._plugin_classes: Dict[str, Type[BasePlugin]] = {}
+        self._plugins: dict[str, BasePlugin] = {}
+        self._plugin_classes: dict[str, type[BasePlugin]] = {}
 
     def register_plugin(self, plugin: BasePlugin) -> None:
         """Register a plugin instance.
@@ -35,7 +34,7 @@ class PluginRegistry:
         self._plugins[name] = plugin
         logger.debug(f"Registered plugin: {name}")
 
-    def register_plugin_class(self, plugin_class: Type[BasePlugin], *args, **kwargs) -> None:
+    def register_plugin_class(self, plugin_class: type[BasePlugin], *args, **kwargs) -> None:
         """Register a plugin class and instantiate it.
 
         Args:
@@ -49,7 +48,7 @@ class PluginRegistry:
         except Exception as e:
             logger.error(f"Failed to instantiate plugin {plugin_class.__name__}: {e}")
 
-    def get_plugin(self, name: str) -> Optional[BasePlugin]:
+    def get_plugin(self, name: str) -> BasePlugin | None:
         """Get a plugin by name.
 
         Args:
@@ -60,7 +59,7 @@ class PluginRegistry:
         """
         return self._plugins.get(name)
 
-    def get_all_plugins(self) -> List[BasePlugin]:
+    def get_all_plugins(self) -> list[BasePlugin]:
         """Get all registered plugins.
 
         Returns:
@@ -68,7 +67,7 @@ class PluginRegistry:
         """
         return list(self._plugins.values())
 
-    def get_available_plugins(self) -> List[BasePlugin]:
+    def get_available_plugins(self) -> list[BasePlugin]:
         """Get all plugins that are available on the current system.
 
         Returns:
@@ -76,7 +75,7 @@ class PluginRegistry:
         """
         return [p for p in self._plugins.values() if p.is_available()]
 
-    def get_plugin_names(self) -> List[str]:
+    def get_plugin_names(self) -> list[str]:
         """Get names of all registered plugins.
 
         Returns:
@@ -107,11 +106,11 @@ class PluginRegistry:
     def discover_and_register_default_plugins(self) -> None:
         """Automatically discover and register all built-in plugins."""
         from ..plugins.apt_cache import APTCacheCleaner
-        from ..plugins.kernels import KernelCleaner
         from ..plugins.browser_cache import BrowserCacheCleaner
+        from ..plugins.kernels import KernelCleaner
+        from ..plugins.systemd_journals import SystemdJournalsCleaner
         from ..plugins.temp_files import TempFilesCleaner
         from ..plugins.thumbnails import ThumbnailCacheCleaner
-        from ..plugins.systemd_journals import SystemdJournalsCleaner
 
         # Register built-in plugins
         self.register_plugin_class(APTCacheCleaner)
@@ -125,7 +124,7 @@ class PluginRegistry:
 
 
 # Global default registry instance
-_default_registry: Optional[PluginRegistry] = None
+_default_registry: PluginRegistry | None = None
 
 
 def get_default_registry() -> PluginRegistry:

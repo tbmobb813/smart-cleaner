@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 
-def _map_type(t: str) -> Dict[str, Any]:
+def _map_type(t: str) -> dict[str, Any]:
     t = t.strip().lower()
     if t == 'int' or t == 'integer':
         return {'type': 'integer'}
@@ -25,7 +25,7 @@ def _map_type(t: str) -> Dict[str, Any]:
     return {'type': 'string'}
 
 
-def plugin_info_to_json_schema(module_name: str) -> Dict[str, Any]:
+def plugin_info_to_json_schema(module_name: str) -> dict[str, Any]:
     """Convert a plugin's PLUGIN_INFO into a JSON Schema (draft-like dict).
 
     The returned schema describes plugin-config keys (PLUGIN_INFO['config']).
@@ -40,7 +40,7 @@ def plugin_info_to_json_schema(module_name: str) -> Dict[str, Any]:
     title = info.get('name') or module_name
     description = info.get('description', '')
 
-    schema: Dict[str, Any] = {
+    schema: dict[str, Any] = {
         '$schema': 'http://json-schema.org/draft-07/schema#',
         'title': title,
         'description': description,

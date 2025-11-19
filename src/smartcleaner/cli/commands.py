@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import click
-from typing import Optional, Any
-from pathlib import Path
-from smartcleaner.db.operations import DatabaseManager
-from smartcleaner.managers.undo_manager import UndoManager
 import importlib
 import inspect
+from pathlib import Path
+from typing import Any
+
+import click
+
+from smartcleaner.db.operations import DatabaseManager
+from smartcleaner.managers.undo_manager import UndoManager
 
 
 def _human_size(num: float) -> str:
@@ -19,7 +21,7 @@ def _human_size(num: float) -> str:
     return f"{val:.1f}PB"
 
 
-def _get_db(db_path: Optional[str] = None) -> DatabaseManager:
+def _get_db(db_path: str | None = None) -> DatabaseManager:
     if db_path is None:
         return DatabaseManager(db_path=None)
     return DatabaseManager(db_path=Path(db_path))
@@ -50,7 +52,7 @@ def schema_group():
 
 @schema_group.command('show')
 @click.option('--db', default=None, help='Path to sqlite DB (optional)')
-def schema_show(db: Optional[str]):
+def schema_show(db: str | None):
     """Show DB schema version."""
     dbm = _get_db(db)
     click.echo(f"schema_version: {dbm.get_schema_version()}")
@@ -59,7 +61,7 @@ def schema_show(db: Optional[str]):
 @schema_group.command('migrate')
 @click.option('--db', default=None, help='Path to sqlite DB (optional)')
 @click.option('--apply', is_flag=True, help='Apply pending migrations')
-def schema_migrate(db: Optional[str], apply: bool):
+def schema_migrate(db: str | None, apply: bool):
     """Show pending migrations and optionally apply them."""
     dbm = _get_db(db)
     pending = dbm.get_pending_migrations()
@@ -75,7 +77,7 @@ def schema_migrate(db: Optional[str], apply: bool):
 @cli.command('list')
 @click.option('--limit', '-n', default=10, help='How many recent operations to list')
 @click.option('--db', default=None, help='Path to sqlite DB (optional)')
-def list_ops(limit: int, db: Optional[str]):
+def list_ops(limit: int, db: str | None):
     dbm = _get_db(db)
     ops = dbm.get_recent_operations(limit=limit)
     if not ops:
@@ -89,7 +91,7 @@ def list_ops(limit: int, db: Optional[str]):
 @cli.command('show')
 @click.argument('operation_id', type=int)
 @click.option('--db', default=None, help='Path to sqlite DB (optional)')
-def show_op(operation_id: int, db: Optional[str]):
+def show_op(operation_id: int, db: str | None):
     dbm = _get_db(db)
     ops = dbm.get_recent_operations(limit=100)
     op = next((o for o in ops if o['id'] == operation_id), None)
@@ -113,7 +115,7 @@ def show_op(operation_id: int, db: Optional[str]):
 @click.option('--yes', is_flag=True, help='Run without confirmation')
 @click.option('--dry-run', is_flag=True, help='Show what would be restored without changing files')
 @click.option('--conflict-policy', type=click.Choice(['rename','overwrite','skip']), default='rename', help='What to do when destination exists')
-def restore_op(operation_id: int, db: Optional[str], yes: bool, dry_run: bool, conflict_policy: str):
+def restore_op(operation_id: int, db: str | None, yes: bool, dry_run: bool, conflict_policy: str):
     dbm = _get_db(db)
     undo = UndoManager(db=dbm)
     items = dbm.get_undo_items(operation_id)
@@ -145,7 +147,7 @@ def restore_op(operation_id: int, db: Optional[str], yes: bool, dry_run: bool, c
 @click.option('--keep-last', type=int, default=None, help='Keep the N most recent backups')
 @click.option('--older-than-days', type=int, default=None, help='Remove backups older than days')
 @click.option('--yes', is_flag=True, help='Do not ask for confirmation')
-def gc_cmd(db: Optional[str], keep_last: Optional[int], older_than_days: Optional[int], yes: bool):
+def gc_cmd(db: str | None, keep_last: int | None, older_than_days: int | None, yes: bool):
     dbm = _get_db(db)
     undo = UndoManager(db=dbm)
     if not yes:
@@ -161,7 +163,7 @@ def gc_cmd(db: Optional[str], keep_last: Optional[int], older_than_days: Optiona
 @click.option('--db', default=None, help='Path to sqlite DB (optional)')
 @click.option('--safety', type=click.Choice(['SAFE', 'CAUTION', 'ADVANCED', 'DANGEROUS']), default='CAUTION', help='Maximum safety level to include')
 @click.option('--plugin', default=None, help='Scan only this plugin (optional)')
-def scan_cmd(db: Optional[str], safety: str, plugin: Optional[str]):
+def scan_cmd(db: str | None, safety: str, plugin: str | None):
     """Scan for cleanable items."""
     from smartcleaner.managers.cleaner_manager import CleanerManager, SafetyLevel
 
@@ -228,10 +230,11 @@ def scan_cmd(db: Optional[str], safety: str, plugin: Optional[str]):
 @click.option('--plugin', default=None, help='Clean only this plugin (optional)')
 @click.option('--dry-run', is_flag=True, help='Show what would be cleaned without cleaning')
 @click.option('--yes', is_flag=True, help='Do not ask for confirmation')
-def clean_cmd(db: Optional[str], safety: str, plugin: Optional[str], dry_run: bool, yes: bool):
+def clean_cmd(db: str | None, safety: str, plugin: str | None, dry_run: bool, yes: bool):
     """Clean items found by scan."""
-    from smartcleaner.managers.cleaner_manager import CleanerManager, SafetyLevel
     import os
+
+    from smartcleaner.managers.cleaner_manager import CleanerManager, SafetyLevel
 
     dbm = _get_db(db)
     manager = CleanerManager(db_manager=dbm)
@@ -334,11 +337,12 @@ def clean_group():
 @click.option('--dry-run', is_flag=True, help='Show what would be deleted')
 @click.option('--yes', is_flag=True, help='Do not ask for confirmation')
 @click.option('--db', default=None, help='Path to sqlite DB (optional)')
-def clean_apt_cache(cache_dir: Optional[str], dry_run: bool, yes: bool, db: Optional[str]):
+def clean_apt_cache(cache_dir: str | None, dry_run: bool, yes: bool, db: str | None):
     """Clean APT package cache (uses apt-get clean when not dry-run)."""
-    from smartcleaner.plugins.apt_cache import APTCacheCleaner
     from pathlib import Path
+
     from smartcleaner.managers.cleaner_manager import CleanerManager
+    from smartcleaner.plugins.apt_cache import APTCacheCleaner
 
     cache_path = Path(cache_dir) if cache_dir else Path('/var/cache/apt/archives')
     plugin = APTCacheCleaner(cache_dir=cache_path)
@@ -381,10 +385,11 @@ def clean_apt_cache(cache_dir: Optional[str], dry_run: bool, yes: bool, db: Opti
 @click.option('--base-dir', default=None, help='Base cache dir to scan (for testing)')
 @click.option('--dry-run', is_flag=True, help='Show what would be deleted')
 @click.option('--yes', is_flag=True, help='Do not ask for confirmation')
-def clean_browser_cache(base_dir: Optional[str], dry_run: bool, yes: bool):
-    from smartcleaner.plugins.browser_cache import BrowserCacheCleaner
+def clean_browser_cache(base_dir: str | None, dry_run: bool, yes: bool):
     from pathlib import Path
+
     from smartcleaner.managers.cleaner_manager import CleanerManager
+    from smartcleaner.plugins.browser_cache import BrowserCacheCleaner
 
     base = [Path(base_dir)] if base_dir else None
     plugin = BrowserCacheCleaner(base_dirs=base)
@@ -415,10 +420,11 @@ def clean_browser_cache(base_dir: Optional[str], dry_run: bool, yes: bool):
 @click.option('--cache-dir', default=None, help='Thumbnail cache dir (for testing)')
 @click.option('--dry-run', is_flag=True, help='Show what would be deleted')
 @click.option('--yes', is_flag=True, help='Do not ask for confirmation')
-def clean_thumbnails(cache_dir: Optional[str], dry_run: bool, yes: bool):
-    from smartcleaner.plugins.thumbnails import ThumbnailCacheCleaner
+def clean_thumbnails(cache_dir: str | None, dry_run: bool, yes: bool):
     from pathlib import Path
+
     from smartcleaner.managers.cleaner_manager import CleanerManager
+    from smartcleaner.plugins.thumbnails import ThumbnailCacheCleaner
 
     cache_path = Path(cache_dir) if cache_dir else None
     plugin = ThumbnailCacheCleaner(cache_dir=cache_path)
@@ -449,10 +455,11 @@ def clean_thumbnails(cache_dir: Optional[str], dry_run: bool, yes: bool):
 @click.option('--base-dir', default=None, help='Base tmp dir to scan (for testing)')
 @click.option('--dry-run', is_flag=True, help='Show what would be deleted')
 @click.option('--yes', is_flag=True, help='Do not ask for confirmation')
-def clean_tmp(base_dir: Optional[str], dry_run: bool, yes: bool):
-    from smartcleaner.plugins.tmp_cleaner import TmpCleaner
+def clean_tmp(base_dir: str | None, dry_run: bool, yes: bool):
     from pathlib import Path
+
     from smartcleaner.managers.cleaner_manager import CleanerManager
+    from smartcleaner.plugins.tmp_cleaner import TmpCleaner
 
     base = Path(base_dir) if base_dir else None
     plugin = TmpCleaner(base_dir=base)
@@ -484,11 +491,11 @@ def clean_tmp(base_dir: Optional[str], dry_run: bool, yes: bool):
 @click.option('--dry-run', is_flag=True, help='Show what would be deleted')
 @click.option('--yes', is_flag=True, help='Do not ask for confirmation')
 @click.option('--db', default=None, help='Path to sqlite DB (optional)')
-def clean_kernels(keep_kernels: Optional[int], dry_run: bool, yes: bool, db: Optional[str]):
+def clean_kernels(keep_kernels: int | None, dry_run: bool, yes: bool, db: str | None):
     """Clean old kernels using apt (purge + autoremove)."""
-    from smartcleaner.plugins.kernels import KernelCleaner
     from smartcleaner.config import get_keep_kernels
     from smartcleaner.managers.cleaner_manager import CleanerManager
+    from smartcleaner.plugins.kernels import KernelCleaner
 
     # If the CLI flag wasn't provided, consult persistent config/defaults
     if keep_kernels is None:
@@ -541,7 +548,7 @@ def config_group():
 @click.option('--yes', is_flag=True, help='Do not ask for confirmation')
 def config_set(key: str, value: str, yes: bool):
     """Set a config key. Supported keys: keep_kernels, db_path"""
-    from smartcleaner.config import set_config_value, get_allowed_keys, _config_file_path
+    from smartcleaner.config import _config_file_path, get_allowed_keys, set_config_value
 
     allowed = get_allowed_keys()
     if key not in allowed:
@@ -602,8 +609,9 @@ def config_plugin_set(factory_key: str, key: str, value: str, yes: bool):
 @click.argument('key', type=str)
 @click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
 def config_plugin_get(factory_key: str, key: str, as_json: bool):
-    from smartcleaner.config import get_plugin_config
     import json
+
+    from smartcleaner.config import get_plugin_config
 
     module_name = factory_key.split(':', 1)[0]
     val = get_plugin_config(module_name, key)
@@ -617,7 +625,7 @@ def config_plugin_get(factory_key: str, key: str, as_json: bool):
 @click.argument('key', type=str)
 @click.option('--defaults', is_flag=True, help='Show environment/config/code defaults for the key')
 def config_get(key: str):
-    from smartcleaner.config import load_config, get_effective_value
+    from smartcleaner.config import get_effective_value, load_config
 
     if '--defaults' in click.get_current_context().args:
         # Print effective values (env, config, code default)
@@ -649,8 +657,9 @@ def plugins_group():
 @click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
 def plugins_list(brief: bool, as_json: bool):
     """List available plugin factories and basic metadata."""
-    from smartcleaner.managers.cleaner_manager import CleanerManager
     import json
+
+    from smartcleaner.managers.cleaner_manager import CleanerManager
 
     mgr = CleanerManager()
     if as_json:
@@ -804,9 +813,10 @@ def plugins_show(factory_key: str, as_json: bool):
 @click.option('--json', 'as_json', is_flag=True, help='Output schema as JSON (default)')
 def plugins_export_form(factory_key: str, as_json: bool):
     """Export a plugin's form/schema (derived from PLUGIN_INFO) as JSON."""
+    import json
+
     from smartcleaner.managers.cleaner_manager import CleanerManager
     from smartcleaner.utils.json_schema import plugin_info_to_json_schema
-    import json
 
     mgr = CleanerManager()
     factories = mgr.list_available_factories()

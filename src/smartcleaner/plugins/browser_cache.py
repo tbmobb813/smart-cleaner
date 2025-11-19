@@ -3,7 +3,7 @@
 Cleans browser cache files from Firefox, Chrome, Chromium, and other common browsers.
 """
 from pathlib import Path
-from typing import List, Dict, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .base import BasePlugin
 
@@ -36,7 +36,7 @@ class BrowserCacheCleaner(BasePlugin):
         ],
     }
 
-    def __init__(self, home_dir: Path = Path.home(), base_dirs: List[Path] | None = None):
+    def __init__(self, home_dir: Path = Path.home(), base_dirs: list[Path] | None = None):
         # Accept either a single home_dir or explicit base_dirs (for tests)
         self.home_dir = Path(home_dir)
         self.base_dirs = [Path(d) for d in base_dirs] if base_dirs is not None else None
@@ -47,8 +47,8 @@ class BrowserCacheCleaner(BasePlugin):
     def get_description(self) -> str:
         return "Cache files from Firefox, Chrome, Chromium, Brave, and other browsers."
 
-    def scan(self) -> "List[CleanableItem]":
-        items: List = []
+    def scan(self) -> "list[CleanableItem]":
+        items: list = []
 
         # If explicit base_dirs were provided (tests), scan those directories directly
         if self.base_dirs is not None:
@@ -85,9 +85,9 @@ class BrowserCacheCleaner(BasePlugin):
 
         return items
 
-    def _scan_directory(self, path: Path, browser_name: str) -> "List[CleanableItem]":
+    def _scan_directory(self, path: Path, browser_name: str) -> "list[CleanableItem]":
         """Scan a directory and return CleanableItems for all files."""
-        items: List = []
+        items: list = []
 
         try:
             for entry in path.rglob('*'):
@@ -110,8 +110,8 @@ class BrowserCacheCleaner(BasePlugin):
 
         return items
 
-    def clean(self, items: "List[CleanableItem]") -> Dict[str, Any]:
-        result: Dict[str, Any] = {
+    def clean(self, items: "list[CleanableItem]") -> dict[str, Any]:
+        result: dict[str, Any] = {
             'success': True,
             'cleaned_count': 0,
             'total_size': 0,
@@ -145,7 +145,7 @@ class BrowserCacheCleaner(BasePlugin):
     def supports_dry_run(self) -> bool:
         return True
 
-    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
+    def clean_dry_run(self, items: "list[CleanableItem]") -> dict[str, Any]:
         return {
             'success': True,
             'cleaned_count': len(items),

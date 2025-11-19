@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Any, Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..utils import privilege
 from .base import BasePlugin
@@ -20,7 +20,7 @@ class APTCacheCleaner(BasePlugin):
     def get_description(self) -> str:
         return "Downloaded package files (.deb) and partial downloads from APT cache."
 
-    def scan(self) -> "List[CleanableItem]":
+    def scan(self) -> "list[CleanableItem]":
         items: list = []
         if not self.cache_dir.exists():
             return items
@@ -47,8 +47,8 @@ class APTCacheCleaner(BasePlugin):
 
         return items
 
-    def clean(self, items: "List[CleanableItem]") -> dict:
-        result: Dict[str, Any] = {'success': False, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
+    def clean(self, items: "list[CleanableItem]") -> dict:
+        result: dict[str, Any] = {'success': False, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
         try:
             # Use apt-get clean via privilege helper; may raise PermissionError if sudo not allowed
             privilege.run_command(['apt-get', 'clean'], sudo=True)
@@ -74,7 +74,7 @@ class APTCacheCleaner(BasePlugin):
         """APT cache cleaning supports dry-run mode."""
         return True
 
-    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
+    def clean_dry_run(self, items: "list[CleanableItem]") -> dict[str, Any]:
         """Report what would be cleaned without actually cleaning."""
         return {
             'success': True,

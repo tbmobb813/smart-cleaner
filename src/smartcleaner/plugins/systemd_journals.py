@@ -2,9 +2,9 @@
 
 Cleans old systemd journal logs to free up disk space.
 """
-from pathlib import Path
-from typing import List, Dict, Any, TYPE_CHECKING
 import re
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from ..utils import privilege
 from .base import BasePlugin
@@ -31,8 +31,8 @@ class SystemdJournalsCleaner(BasePlugin):
     def get_description(self) -> str:
         return f"Old systemd journal logs (keeps last {self.keep_days} days)."
 
-    def scan(self) -> "List[CleanableItem]":
-        items: List = []
+    def scan(self) -> "list[CleanableItem]":
+        items: list = []
 
         # Use journalctl to get disk usage info
         try:
@@ -67,8 +67,8 @@ class SystemdJournalsCleaner(BasePlugin):
 
         return items
 
-    def clean(self, items: "List[CleanableItem]") -> Dict[str, Any]:
-        result: Dict[str, Any] = {
+    def clean(self, items: "list[CleanableItem]") -> dict[str, Any]:
+        result: dict[str, Any] = {
             'success': False,
             'cleaned_count': 0,
             'total_size': 0,
@@ -109,7 +109,7 @@ class SystemdJournalsCleaner(BasePlugin):
     def supports_dry_run(self) -> bool:
         return True
 
-    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
+    def clean_dry_run(self, items: "list[CleanableItem]") -> dict[str, Any]:
         return {
             'success': True,
             'cleaned_count': len(items),

@@ -6,19 +6,19 @@ the example. The manager exposes simple methods used by tests.
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
-from typing import Optional, List, Dict, Any, cast
 from datetime import datetime
+from pathlib import Path
+from typing import Any, cast
 
 # bump this when schema changes are added via migrations
 CURRENT_SCHEMA_VERSION = 2
 
 
 class DatabaseManager:
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         # Use in-memory DB when db_path is None for tests
         self._db_path = db_path
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
         self._ensure_conn()
 
     def _ensure_conn(self):
@@ -164,7 +164,7 @@ class DatabaseManager:
         if alters:
             self._conn.commit()
 
-    def log_clean_operation(self, plugin_name: str, items_count: int, size_freed: int, success: bool, error_message: Optional[str] = None) -> int:
+    def log_clean_operation(self, plugin_name: str, items_count: int, size_freed: int, success: bool, error_message: str | None = None) -> int:
         ts = datetime.utcnow().isoformat()
         self._ensure_conn()
         assert self._conn is not None
@@ -177,7 +177,7 @@ class DatabaseManager:
         # cur.lastrowid is usually an int after INSERT; cast for typing safety
         return cast(int, cur.lastrowid)
 
-    def save_undo_item(self, operation_id: int, item_path: str, backup_path: Optional[str], can_restore: bool = True, backup_uid: Optional[int] = None, backup_gid: Optional[int] = None) -> int:
+    def save_undo_item(self, operation_id: int, item_path: str, backup_path: str | None, can_restore: bool = True, backup_uid: int | None = None, backup_gid: int | None = None) -> int:
         ts = datetime.utcnow().isoformat()
         self._ensure_conn()
         assert self._conn is not None
@@ -189,7 +189,7 @@ class DatabaseManager:
         self._conn.commit()
         return cast(int, cur.lastrowid)
 
-    def mark_undo_restored(self, undo_id: int, success: bool, error_message: Optional[str] = None) -> None:
+    def mark_undo_restored(self, undo_id: int, success: bool, error_message: str | None = None) -> None:
         ts = datetime.utcnow().isoformat() if success else None
         self._ensure_conn()
         assert self._conn is not None
@@ -200,7 +200,7 @@ class DatabaseManager:
         )
         self._conn.commit()
 
-    def get_recent_operations(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_recent_operations(self, limit: int = 10) -> list[dict[str, Any]]:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
@@ -208,7 +208,7 @@ class DatabaseManager:
         rows = cur.fetchall()
         return [dict(row) for row in rows]
 
-    def get_undo_items(self, operation_id: int) -> List[Dict[str, Any]]:
+    def get_undo_items(self, operation_id: int) -> list[dict[str, Any]]:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()

@@ -1,9 +1,10 @@
-from typing import Optional, Callable, Any
+from collections.abc import Callable
+from typing import Any
 
 from .gui.main_window import run as gui_run
 
 # prefer CLI if click is available
-cli_main: Optional[Callable[[], Any]] = None
+cli_main: Callable[[], Any] | None = None
 try:
     from .cli.commands import main as cli_main
 except Exception:

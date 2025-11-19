@@ -3,12 +3,12 @@
 This module exposes small helpers that wrap `CleanerManager` discovery so
 consumers don't need to instantiate the manager directly.
 """
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 from smartcleaner.managers.cleaner_manager import CleanerManager
 
 
-def get_factories_metadata() -> Dict[str, Dict[str, Any]]:
+def get_factories_metadata() -> dict[str, dict[str, Any]]:
     """Return metadata for available plugin factories.
 
     The returned mapping is factory_key -> metadata with serializable values:
@@ -20,10 +20,10 @@ def get_factories_metadata() -> Dict[str, Dict[str, Any]]:
     """
     mgr = CleanerManager()
     meta = mgr.get_factories_metadata()
-    out: Dict[str, Dict[str, Any]] = {}
+    out: dict[str, dict[str, Any]] = {}
     for key, v in meta.items():
         cls = v.get('class_obj')
-        class_path: Optional[str] = None
+        class_path: str | None = None
         try:
             if cls is not None:
                 class_path = f"{cls.__module__}.{cls.__name__}"
@@ -41,13 +41,13 @@ def get_factories_metadata() -> Dict[str, Dict[str, Any]]:
     return out
 
 
-def get_factory_keys() -> List[str]:
+def get_factory_keys() -> list[str]:
     """Return a list of available factory keys."""
     mgr = CleanerManager()
     return mgr.list_available_factories()
 
 
-def get_plugin_info(factory_key: str) -> Optional[Dict[str, Any]]:
+def get_plugin_info(factory_key: str) -> dict[str, Any] | None:
     """Return module-level PLUGIN_INFO for a factory key, or None.
 
     The factory_key may be the form 'module:Class' or just a module.

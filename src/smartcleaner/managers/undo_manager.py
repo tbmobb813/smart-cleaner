@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING
-from datetime import datetime, timedelta
-import shutil
 import os
+import shutil
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..db.operations import DatabaseManager
 
@@ -20,12 +20,12 @@ class UndoManager:
     metadata that can be used to attempt a restore.
     """
 
-    def __init__(self, db: Optional[DatabaseManager] = None, backup_dir: Optional[Path] = None):
+    def __init__(self, db: DatabaseManager | None = None, backup_dir: Path | None = None):
         self.db = db or DatabaseManager()
         self.backup_dir = backup_dir or Path.home() / '.local' / 'share' / 'smartcleaner' / 'backups'
         self.backup_dir.mkdir(parents=True, exist_ok=True)
 
-    def log_operation(self, plugin_name: str, items: "List[CleanableItem]") -> int:
+    def log_operation(self, plugin_name: str, items: list[CleanableItem]) -> int:
         """Log an operation and create backup entries for file items.
 
         Returns the operation_id in the DB.
@@ -74,7 +74,7 @@ class UndoManager:
     def get_undo_items(self, operation_id: int):
         return self.db.get_undo_items(operation_id)
 
-    def prune_backups(self, keep_last: Optional[int] = None, older_than_days: Optional[int] = None) -> dict:
+    def prune_backups(self, keep_last: int | None = None, older_than_days: int | None = None) -> dict:
         """Prune backup directories in the backup_dir.
 
         - keep_last: keep this many most-recent operation directories (by timestamp in name)

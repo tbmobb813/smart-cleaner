@@ -1,5 +1,5 @@
 import re
-from typing import List, Any, Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..utils import privilege
 from .base import BasePlugin
@@ -39,7 +39,7 @@ class KernelCleaner(BasePlugin):
         cp: Any = privilege.run_command(['uname', '-r'], sudo=False)
         return str(cp.stdout).strip()
 
-    def get_installed_kernels(self) -> List[dict]:
+    def get_installed_kernels(self) -> list[dict]:
         result: Any = privilege.run_command(['dpkg', '--list'], sudo=False)
         kernels: list[dict] = []
         current = self.get_current_kernel()
@@ -68,8 +68,8 @@ class KernelCleaner(BasePlugin):
 
         return kernels
 
-    def scan(self) -> "List[CleanableItem]":
-        items: List = []
+    def scan(self) -> "list[CleanableItem]":
+        items: list = []
         try:
             kernels = self.get_installed_kernels()
 
@@ -97,8 +97,8 @@ class KernelCleaner(BasePlugin):
 
         return items
 
-    def clean(self, items: "List[CleanableItem]") -> dict:
-        result: Dict[str, Any] = {'success': True, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
+    def clean(self, items: "list[CleanableItem]") -> dict:
+        result: dict[str, Any] = {'success': True, 'cleaned_count': 0, 'total_size': 0, 'errors': []}
         for item in items:
             try:
                 # Purge the package name
@@ -129,7 +129,7 @@ class KernelCleaner(BasePlugin):
         """Kernel cleaning supports dry-run mode."""
         return True
 
-    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
+    def clean_dry_run(self, items: "list[CleanableItem]") -> dict[str, Any]:
         """Report what would be cleaned without actually cleaning."""
         return {
             'success': True,

@@ -1,7 +1,8 @@
-from pathlib import Path
-from typing import Optional, TYPE_CHECKING
-from .base import BasePlugin
 import shutil
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from .base import BasePlugin
 
 if TYPE_CHECKING:
     from ..managers.cleaner_manager import CleanableItem, SafetyLevel  # noqa: F401
@@ -10,7 +11,7 @@ if TYPE_CHECKING:
 class TmpCleaner(BasePlugin):
     """Cleans temporary directories like /tmp or a provided base path."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         self.base_dir = Path(base_dir) if base_dir else Path('/tmp')
 
     def get_name(self) -> str:

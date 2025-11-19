@@ -3,9 +3,9 @@
 Cleans temporary files from /tmp and user cache directories that are older
 than a configurable threshold.
 """
-from pathlib import Path
-from typing import List, Dict, Any, TYPE_CHECKING
 import time
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from .base import BasePlugin
 
@@ -40,8 +40,8 @@ class TempFilesCleaner(BasePlugin):
     def get_description(self) -> str:
         return f"Old temporary files (>{self.min_age_days} days) from /tmp and ~/.cache."
 
-    def scan(self) -> "List[CleanableItem]":
-        items: List = []
+    def scan(self) -> "list[CleanableItem]":
+        items: list = []
 
         # Scan user cache directory
         user_cache = self.home_dir / '.cache'
@@ -56,9 +56,9 @@ class TempFilesCleaner(BasePlugin):
 
         return items
 
-    def _scan_directory(self, path: Path, category: str) -> "List[CleanableItem]":
+    def _scan_directory(self, path: Path, category: str) -> "list[CleanableItem]":
         """Scan a directory for old temporary files."""
-        items: List = []
+        items: list = []
 
         try:
             for entry in path.rglob('*'):
@@ -97,8 +97,8 @@ class TempFilesCleaner(BasePlugin):
 
         return items
 
-    def clean(self, items: "List[CleanableItem]") -> Dict[str, Any]:
-        result: Dict[str, Any] = {
+    def clean(self, items: "list[CleanableItem]") -> dict[str, Any]:
+        result: dict[str, Any] = {
             'success': True,
             'cleaned_count': 0,
             'total_size': 0,
@@ -128,7 +128,7 @@ class TempFilesCleaner(BasePlugin):
     def supports_dry_run(self) -> bool:
         return True
 
-    def clean_dry_run(self, items: "List[CleanableItem]") -> Dict[str, Any]:
+    def clean_dry_run(self, items: "list[CleanableItem]") -> dict[str, Any]:
         return {
             'success': True,
             'cleaned_count': len(items),

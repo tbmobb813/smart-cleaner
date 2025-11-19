@@ -14,14 +14,14 @@ from __future__ import annotations
 import os
 import shlex
 import subprocess
-from typing import Sequence, Optional
+from collections.abc import Sequence
 
 
 def _allow_sudo_from_env() -> bool:
     return os.environ.get('SMARTCLEANER_ALLOW_SUDO', '') not in ('', '0', 'false', 'False')
 
 
-def run_command(cmd: Sequence[str], sudo: bool = False, check: bool = True, capture_output: bool = True, text: bool = True, env: Optional[dict] = None) -> subprocess.CompletedProcess:
+def run_command(cmd: Sequence[str], sudo: bool = False, check: bool = True, capture_output: bool = True, text: bool = True, env: dict | None = None) -> subprocess.CompletedProcess:
     """Run a command, optionally via sudo.
 
     Security: we only prepend 'sudo' when `sudo` is True and the environment
