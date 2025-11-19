@@ -131,43 +131,5 @@ jobs:
 
       - name: Validate constraints match installed dev versions
         run: |
-          python - <<'PY'
-          import sys
-          from packaging.utils import canonicalize_name
-
-          def read_lines(path):
-              with open(path) as f:
-                  return [l.strip() for l in f if l.strip() and not l.strip().startswith('#')]
-
-          constraints = read_lines('requirements-dev-constraints.txt')
-          frozen = read_lines('frozen.txt')
-
-          # Build a map from canonical package name -> installed spec
-          installed = {}
-          for f in frozen:
-              if '==' in f:
-                  name, ver = f.split('==', 1)
-                  can = canonicalize_name(name)
-                  installed[can] = f
-                  # also store underscore-normalized key to handle pip freeze variants
-                  installed[can.replace('-', '_')] = f
-
-          ok = True
-          for c in constraints:
-              if '==' in c:
-                  name, ver = c.split('==', 1)
-                  can = canonicalize_name(name)
-                  inst = installed.get(can) or installed.get(can.replace('-', '_'))
-                  if not inst:
-                      print(f'MISSING: {c} not present in frozen.txt (checked as {can})')
-                      ok = False
-                  else:
-                      if inst.lower() != c.lower():
-                          print(f'MISMATCH: constraint {c} != installed {inst}')
-                          ok = False
-
-          if not ok:
-              print('\nConstraints validation failed. If you intentionally updated dev deps, regenerate requirements-dev-constraints.txt and update the PR.')
-              sys.exit(1)
-          print('OK: requirements-dev-constraints.txt matches installed dev versions')
-          PY
+          . .venv/bin/activate
+          python scripts/validate-constraints.py requirements-dev-constraints.txt frozen.txt
