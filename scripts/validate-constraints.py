@@ -36,28 +36,29 @@ def main(argv: list[str]) -> int:
     constraints = read_lines(constraints_file)
     frozen = read_lines(frozen_file)
 
-    # Build installed map: canonical name -> frozen line
-    installed: dict[str, str] = {}
+    # Build installed map: canonical name -> (version, frozen line)
+    installed: dict[str, tuple[str, str]] = {}
     for f in frozen:
         if '==' in f:
-            name = f.split('==', 1)[0]
+            name, ver = f.split('==', 1)
             can = canonicalize_name(name)
-            installed[can] = f
-            # store underscore-normalized variant
-            installed[can.replace('-', '_')] = f
+            installed[can] = (ver, f)
+            # also store underscore-normalized variant to be extra robust
+            installed[can.replace('-', '_')] = (ver, f)
 
     ok = True
     for c in constraints:
         if '==' in c:
-            name = c.split('==', 1)[0]
+            name, ver = c.split('==', 1)
             can = canonicalize_name(name)
             inst = installed.get(can) or installed.get(can.replace('-', '_'))
             if not inst:
                 print(f"MISSING: {c} not present in {frozen_file}")
                 ok = False
             else:
-                if inst.lower() != c.lower():
-                    print(f"MISMATCH: constraint {c} != installed {inst}")
+                inst_ver, inst_line = inst
+                if inst_ver != ver:
+                    print(f"MISMATCH: constraint {c} != installed {inst_line}")
                     ok = False
 
     if not ok:
