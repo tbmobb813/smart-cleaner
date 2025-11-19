@@ -8,14 +8,14 @@ tomlkit: Any = None
 tomli_w: Any = None
 
 # tomllib is stdlib in Python 3.11+. Fall back to tomli for older versions.
-try:
-    import tomllib as _tomllib
+import importlib
 
+try:
+    _tomllib = importlib.import_module("tomllib")
     tomllib = _tomllib
 except Exception:  # pragma: no cover - platform dependent
     try:
-        import tomli as _tomllib
-
+        _tomllib = importlib.import_module("tomli")
         tomllib = _tomllib
     except Exception:
         tomllib = None
