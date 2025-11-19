@@ -1,9 +1,11 @@
 """Tests for the updated CleanerManager with plugin orchestration."""
+from typing import Any
+
 import pytest
-from smartcleaner.managers.cleaner_manager import CleanerManager, SafetyLevel, CleanableItem
+
+from smartcleaner.managers.cleaner_manager import CleanableItem, CleanerManager, SafetyLevel
 from smartcleaner.managers.plugin_registry import PluginRegistry
 from smartcleaner.plugins.base import BasePlugin
-from typing import List, Dict, Any
 
 
 class MockPluginForTesting(BasePlugin):
@@ -21,7 +23,7 @@ class MockPluginForTesting(BasePlugin):
     def get_description(self) -> str:
         return f"Test plugin: {self.name}"
 
-    def scan(self) -> List[CleanableItem]:
+    def scan(self) -> list[CleanableItem]:
         self.scan_called = True
         return [
             CleanableItem(
@@ -33,7 +35,7 @@ class MockPluginForTesting(BasePlugin):
             for i in range(self.items_count)
         ]
 
-    def clean(self, items: List[CleanableItem]) -> Dict[str, Any]:
+    def clean(self, items: list[CleanableItem]) -> dict[str, Any]:
         self.clean_called = True
         return {
             'success': True,
@@ -85,14 +87,14 @@ def test_scan_with_safety_filter():
         def get_description(self) -> str:
             return "Plugin with mixed safety levels"
 
-        def scan(self) -> List[CleanableItem]:
+        def scan(self) -> list[CleanableItem]:
             return [
                 CleanableItem("/tmp/safe", 100, "Safe item", SafetyLevel.SAFE),
                 CleanableItem("/tmp/caution", 200, "Caution item", SafetyLevel.CAUTION),
                 CleanableItem("/tmp/advanced", 300, "Advanced item", SafetyLevel.ADVANCED),
             ]
 
-        def clean(self, items: List[CleanableItem]) -> Dict[str, Any]:
+        def clean(self, items: list[CleanableItem]) -> dict[str, Any]:
             return {'success': True, 'cleaned_count': len(items), 'total_size': 0, 'errors': []}
 
     registry.register_plugin(MixedSafetyPlugin())

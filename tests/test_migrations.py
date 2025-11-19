@@ -1,6 +1,6 @@
 import sqlite3
 
-from smartcleaner.db.operations import DatabaseManager, CURRENT_SCHEMA_VERSION
+from smartcleaner.db.operations import CURRENT_SCHEMA_VERSION, DatabaseManager
 
 
 def test_migration_from_old_schema(tmp_path):

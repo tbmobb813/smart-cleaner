@@ -1,5 +1,5 @@
-from smartcleaner.plugins.kernels import KernelCleaner
 from smartcleaner.managers.cleaner_manager import CleanerManager
+from smartcleaner.plugins.kernels import KernelCleaner
 
 
 def test_kernel_clean_failure_does_not_log(monkeypatch):

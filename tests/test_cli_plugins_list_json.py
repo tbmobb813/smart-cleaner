@@ -1,5 +1,6 @@
-from click.testing import CliRunner
 import json
+
+from click.testing import CliRunner
 
 from smartcleaner.cli.commands import cli
 from smartcleaner.managers.cleaner_manager import CleanerManager

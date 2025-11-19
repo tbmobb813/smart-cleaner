@@ -1,8 +1,9 @@
 from click.testing import CliRunner
+
 from smartcleaner.cli.commands import cli
 from smartcleaner.db.operations import DatabaseManager
-from smartcleaner.managers.undo_manager import UndoManager
 from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
+from smartcleaner.managers.undo_manager import UndoManager
 
 
 def test_cli_list_and_show(tmp_path):

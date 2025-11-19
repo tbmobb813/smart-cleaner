@@ -2,8 +2,8 @@ import shutil
 from pathlib import Path
 
 from smartcleaner.db.operations import DatabaseManager
-from smartcleaner.managers.undo_manager import UndoManager
 from smartcleaner.managers.cleaner_manager import CleanableItem, SafetyLevel
+from smartcleaner.managers.undo_manager import UndoManager
 
 
 def test_move_fallback_to_copy(tmp_path, monkeypatch):

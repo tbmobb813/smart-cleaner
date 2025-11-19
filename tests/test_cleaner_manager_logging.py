@@ -1,4 +1,4 @@
-from smartcleaner.managers.cleaner_manager import CleanerManager, CleanableItem, SafetyLevel
+from smartcleaner.managers.cleaner_manager import CleanableItem, CleanerManager, SafetyLevel
 
 
 def test_clean_selected_logs_operation(monkeypatch):

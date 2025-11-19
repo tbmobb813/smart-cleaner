@@ -1,6 +1,8 @@
-import pytest
-from smartcleaner.config import validate_plugin_config
 from pathlib import Path
+
+import pytest
+
+from smartcleaner.config import validate_plugin_config
 
 
 def test_validate_kernel_keep_kernels_valid():
