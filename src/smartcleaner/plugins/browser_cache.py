@@ -16,23 +16,23 @@ class BrowserCacheCleaner(BasePlugin):
 
     # Common browser cache locations (relative to home directory)
     BROWSER_PATHS = {
-        'Firefox': [
-            '.mozilla/firefox/*/cache2',
-            '.cache/mozilla/firefox/*/cache2',
+        "Firefox": [
+            ".mozilla/firefox/*/cache2",
+            ".cache/mozilla/firefox/*/cache2",
         ],
-        'Chrome': [
-            '.config/google-chrome/Default/Cache',
-            '.cache/google-chrome/Default/Cache',
+        "Chrome": [
+            ".config/google-chrome/Default/Cache",
+            ".cache/google-chrome/Default/Cache",
         ],
-        'Chromium': [
-            '.config/chromium/Default/Cache',
-            '.cache/chromium/Default/Cache',
+        "Chromium": [
+            ".config/chromium/Default/Cache",
+            ".cache/chromium/Default/Cache",
         ],
-        'Brave': [
-            '.config/BraveSoftware/Brave-Browser/Default/Cache',
+        "Brave": [
+            ".config/BraveSoftware/Brave-Browser/Default/Cache",
         ],
-        'Edge': [
-            '.config/microsoft-edge/Default/Cache',
+        "Edge": [
+            ".config/microsoft-edge/Default/Cache",
         ],
     }
 
@@ -55,7 +55,7 @@ class BrowserCacheCleaner(BasePlugin):
             for d in self.base_dirs:
                 p = Path(d)
                 if p.exists():
-                    items.extend(self._scan_directory(p, 'Browser'))
+                    items.extend(self._scan_directory(p, "Browser"))
             return items
 
         search_bases = [self.home_dir]
@@ -64,9 +64,9 @@ class BrowserCacheCleaner(BasePlugin):
             for browser_name, patterns in self.BROWSER_PATHS.items():
                 for pattern in patterns:
                     # Expand glob patterns
-                    if '*' in pattern:
+                    if "*" in pattern:
                         # Handle wildcards manually
-                        base = pattern.split('*')[0]
+                        base = pattern.split("*")[0]
                         base_path = base_home / base
                         if base_path.exists():
                             # Find all matching directories
@@ -75,7 +75,7 @@ class BrowserCacheCleaner(BasePlugin):
                                 for subdir in parent.iterdir():
                                     if subdir.is_dir():
                                         # Check if this matches the pattern
-                                        cache_path = subdir / pattern.split('*/')[-1]
+                                        cache_path = subdir / pattern.split("*/")[-1]
                                         if cache_path.exists():
                                             items.extend(self._scan_directory(cache_path, browser_name))
                     else:
@@ -90,17 +90,20 @@ class BrowserCacheCleaner(BasePlugin):
         items: list = []
 
         try:
-            for entry in path.rglob('*'):
+            for entry in path.rglob("*"):
                 if entry.is_file():
                     try:
                         size = entry.stat().st_size
                         from ..managers.cleaner_manager import CleanableItem, SafetyLevel
-                        items.append(CleanableItem(
-                            path=str(entry),
-                            size=size,
-                            description=f"{browser_name} cache: {entry.name}",
-                            safety=SafetyLevel.SAFE
-                        ))
+
+                        items.append(
+                            CleanableItem(
+                                path=str(entry),
+                                size=size,
+                                description=f"{browser_name} cache: {entry.name}",
+                                safety=SafetyLevel.SAFE,
+                            )
+                        )
                     except (OSError, PermissionError):
                         # Skip files we can't access
                         continue
@@ -111,12 +114,7 @@ class BrowserCacheCleaner(BasePlugin):
         return items
 
     def clean(self, items: "list[CleanableItem]") -> dict[str, Any]:
-        result: dict[str, Any] = {
-            'success': True,
-            'cleaned_count': 0,
-            'total_size': 0,
-            'errors': []
-        }
+        result: dict[str, Any] = {"success": True, "cleaned_count": 0, "total_size": 0, "errors": []}
 
         for item in items:
             try:
@@ -124,11 +122,11 @@ class BrowserCacheCleaner(BasePlugin):
                 if file_path.exists():
                     size = file_path.stat().st_size
                     file_path.unlink()
-                    result['cleaned_count'] += 1
-                    result['total_size'] += size
+                    result["cleaned_count"] += 1
+                    result["total_size"] += size
             except (OSError, PermissionError) as e:
-                result['errors'].append(f"Failed to delete {item.path}: {e}")
-                result['success'] = False
+                result["errors"].append(f"Failed to delete {item.path}: {e}")
+                result["success"] = False
 
         return result
 
@@ -137,7 +135,7 @@ class BrowserCacheCleaner(BasePlugin):
         for patterns in self.BROWSER_PATHS.values():
             for pattern in patterns:
                 # Simple check: if the base directory exists
-                base = pattern.split('*')[0] if '*' in pattern else pattern.split('/')[0]
+                base = pattern.split("*")[0] if "*" in pattern else pattern.split("/")[0]
                 if (self.home_dir / base).exists():
                     return True
         return False
@@ -147,9 +145,9 @@ class BrowserCacheCleaner(BasePlugin):
 
     def clean_dry_run(self, items: "list[CleanableItem]") -> dict[str, Any]:
         return {
-            'success': True,
-            'cleaned_count': len(items),
-            'total_size': sum(item.size for item in items),
-            'errors': [],
-            'dry_run': True
+            "success": True,
+            "cleaned_count": len(items),
+            "total_size": sum(item.size for item in items),
+            "errors": [],
+            "dry_run": True,
         }

@@ -11,11 +11,11 @@ from .temp_files import TempFilesCleaner
 from .thumbnails import ThumbnailCacheCleaner
 
 __all__ = [
-    'BasePlugin',
-    'APTCacheCleaner',
-    'KernelCleaner',
-    'BrowserCacheCleaner',
-    'TempFilesCleaner',
-    'ThumbnailCacheCleaner',
-    'SystemdJournalsCleaner',
+    "BasePlugin",
+    "APTCacheCleaner",
+    "KernelCleaner",
+    "BrowserCacheCleaner",
+    "TempFilesCleaner",
+    "ThumbnailCacheCleaner",
+    "SystemdJournalsCleaner",
 ]

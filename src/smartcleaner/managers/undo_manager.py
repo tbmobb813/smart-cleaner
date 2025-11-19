@@ -22,7 +22,7 @@ class UndoManager:
 
     def __init__(self, db: DatabaseManager | None = None, backup_dir: Path | None = None):
         self.db = db or DatabaseManager()
-        self.backup_dir = backup_dir or Path.home() / '.local' / 'share' / 'smartcleaner' / 'backups'
+        self.backup_dir = backup_dir or Path.home() / ".local" / "share" / "smartcleaner" / "backups"
         self.backup_dir.mkdir(parents=True, exist_ok=True)
 
     def log_operation(self, plugin_name: str, items: list[CleanableItem]) -> int:
@@ -32,7 +32,9 @@ class UndoManager:
         """
         # Log the clean operation summary
         total_size = sum(item.size for item in items)
-        op_id = self.db.log_clean_operation(plugin_name=plugin_name, items_count=len(items), size_freed=total_size, success=True)
+        op_id = self.db.log_clean_operation(
+            plugin_name=plugin_name, items_count=len(items), size_freed=total_size, success=True
+        )
 
         # For each item, if it looks like a path on disk, attempt to backup (move) it.
         for item in items:
@@ -50,8 +52,8 @@ class UndoManager:
                         backup_uid = None
                         backup_gid = None
 
-                    ts = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-                    dest_dir = self.backup_dir / f'op_{op_id}_{ts}'
+                    ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+                    dest_dir = self.backup_dir / f"op_{op_id}_{ts}"
                     dest_dir.mkdir(parents=True, exist_ok=True)
                     dest = dest_dir / p.name
                     shutil.move(str(p), str(dest))
@@ -64,7 +66,14 @@ class UndoManager:
 
             # store ownership info if available
             try:
-                self.db.save_undo_item(operation_id=op_id, item_path=item.path, backup_path=backup_path, can_restore=can_restore, backup_uid=locals().get('backup_uid'), backup_gid=locals().get('backup_gid'))
+                self.db.save_undo_item(
+                    operation_id=op_id,
+                    item_path=item.path,
+                    backup_path=backup_path,
+                    can_restore=can_restore,
+                    backup_uid=locals().get("backup_uid"),
+                    backup_gid=locals().get("backup_gid"),
+                )
             except Exception:
                 # best-effort; ignore DB failures
                 pass
@@ -83,13 +92,14 @@ class UndoManager:
         Returns a dict with counts: {'removed': n, 'remaining': m}
         """
         removed = 0
-        dirs = [p for p in self.backup_dir.iterdir() if p.is_dir() and p.name.startswith('op_')]
+        dirs = [p for p in self.backup_dir.iterdir() if p.is_dir() and p.name.startswith("op_")]
+
         # parse timestamp suffix from name op_<id>_<ts>
         def parse_ts(p: Path):
-            parts = p.name.split('_')
+            parts = p.name.split("_")
             try:
                 ts = parts[-1]
-                return datetime.strptime(ts, '%Y%m%d%H%M%S')
+                return datetime.strptime(ts, "%Y%m%d%H%M%S")
             except Exception:
                 return datetime.min
 
@@ -113,10 +123,10 @@ class UndoManager:
             except Exception:
                 pass
 
-        remaining = len([p for p in self.backup_dir.iterdir() if p.is_dir() and p.name.startswith('op_')])
-        return {'removed': removed, 'remaining': remaining}
+        remaining = len([p for p in self.backup_dir.iterdir() if p.is_dir() and p.name.startswith("op_")])
+        return {"removed": removed, "remaining": remaining}
 
-    def restore_operation(self, operation_id: int, conflict_policy: str = 'rename') -> dict:
+    def restore_operation(self, operation_id: int, conflict_policy: str = "rename") -> dict:
         """Attempt to restore all items for a given operation.
 
         Returns a mapping of undo_log id -> bool indicating whether the item
@@ -125,10 +135,10 @@ class UndoManager:
         results = {}
         items = self.get_undo_items(operation_id)
         for it in items:
-            uid = it.get('id')
-            backup = it.get('backup_path')
-            original = it.get('item_path')
-            can_restore = bool(it.get('can_restore'))
+            uid = it.get("id")
+            backup = it.get("backup_path")
+            original = it.get("item_path")
+            can_restore = bool(it.get("can_restore"))
             success = False
             err = None
             if can_restore and backup:
@@ -140,20 +150,20 @@ class UndoManager:
 
                     # Handle existing destination according to conflict_policy
                     if dest.exists():
-                        if conflict_policy == 'rename':
-                            ts = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+                        if conflict_policy == "rename":
+                            ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
                             renamed = dest.parent / f"{dest.name}.orig.{ts}"
                             dest.rename(renamed)
-                        elif conflict_policy == 'overwrite':
+                        elif conflict_policy == "overwrite":
                             # remove existing file/dir
                             if dest.is_dir():
                                 shutil.rmtree(dest)
                             else:
                                 dest.unlink()
-                        elif conflict_policy == 'skip':
+                        elif conflict_policy == "skip":
                             # skip restoring this item
                             success = False
-                            err = 'skipped due to existing destination'
+                            err = "skipped due to existing destination"
                             # record and continue
                             try:
                                 self.db.mark_undo_restored(uid, False, err)
@@ -162,7 +172,7 @@ class UndoManager:
                             results[uid] = False
                             continue
                         else:
-                            raise ValueError(f'unknown conflict policy: {conflict_policy}')
+                            raise ValueError(f"unknown conflict policy: {conflict_policy}")
 
                     dest.parent.mkdir(parents=True, exist_ok=True)
 
@@ -185,8 +195,8 @@ class UndoManager:
                     success = True
                     # Attempt to restore ownership if recorded
                     try:
-                        b_uid = it.get('backup_uid')
-                        b_gid = it.get('backup_gid')
+                        b_uid = it.get("backup_uid")
+                        b_gid = it.get("backup_gid")
                         if b_uid is not None and b_gid is not None:
                             try:
                                 os.chown(str(dest), int(b_uid), int(b_gid))

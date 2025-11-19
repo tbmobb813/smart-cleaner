@@ -2,36 +2,45 @@ import os
 from pathlib import Path
 from typing import Any
 
+# Optional TOML libraries (module or None)
+tomllib: Any = None
+tomlkit: Any = None
+tomli_w: Any = None
+
 # tomllib is stdlib in Python 3.11+. Fall back to tomli for older versions.
 try:
-    import tomllib  # type: ignore
+    import tomllib as _tomllib
+    tomllib = _tomllib
 except Exception:  # pragma: no cover - platform dependent
     try:
-        import tomli as tomllib  # type: ignore
+        import tomli as _tomllib
+        tomllib = _tomllib
     except Exception:
-        tomllib = None  # type: ignore
+        tomllib = None
 
 # Optionally use tomlkit for writing richer TOML with comments/order preserved
 try:
-    import tomlkit  # type: ignore
+    import tomlkit as _tomlkit
+    tomlkit = _tomlkit
 except Exception:
-    tomlkit = None  # type: ignore
+    tomlkit = None
 
 
 # Prefer tomli_w (tomli-w) for round-trip writing when available, else tomlkit
 try:
-    import tomli_w  # type: ignore
+    import tomli_w as _tomli_w
+    tomli_w = _tomli_w
 except Exception:
-    tomli_w = None  # type: ignore
+    tomli_w = None
 
 
 def _config_file_path() -> Path:
-    xdg = os.getenv('XDG_CONFIG_HOME')
+    xdg = os.getenv("XDG_CONFIG_HOME")
     if xdg:
         base = Path(xdg)
     else:
-        base = Path.home() / '.config'
-    return base / 'smartcleaner' / 'config.toml'
+        base = Path.home() / ".config"
+    return base / "smartcleaner" / "config.toml"
 
 
 def load_config() -> dict[str, Any]:
@@ -42,7 +51,7 @@ def load_config() -> dict[str, Any]:
     if not p.exists():
         return {}
     try:
-        with p.open('rb') as f:
+        with p.open("rb") as f:
             data = tomllib.load(f)
             if isinstance(data, dict):
                 return data
@@ -56,7 +65,7 @@ def get_keep_kernels(default: int | None = None) -> int | None:
 
     Precedence: environment SMARTCLEANER_KEEP_KERNELS > config file > default
     """
-    env = os.getenv('SMARTCLEANER_KEEP_KERNELS')
+    env = os.getenv("SMARTCLEANER_KEEP_KERNELS")
     if env:
         try:
             return int(env)
@@ -64,7 +73,7 @@ def get_keep_kernels(default: int | None = None) -> int | None:
             pass
 
     cfg = load_config()
-    v = cfg.get('keep_kernels') if isinstance(cfg, dict) else None
+    v = cfg.get("keep_kernels") if isinstance(cfg, dict) else None
     if v is not None:
         try:
             return int(v)
@@ -75,16 +84,16 @@ def get_keep_kernels(default: int | None = None) -> int | None:
 
 
 def get_db_path(default: str | None = None) -> str | None:
-    env = os.getenv('SMARTCLEANER_DB_PATH')
+    env = os.getenv("SMARTCLEANER_DB_PATH")
     if env:
         return env
     cfg = load_config()
-    return cfg.get('db_path', default) if isinstance(cfg, dict) else default
+    return cfg.get("db_path", default) if isinstance(cfg, dict) else default
 
 
 _ALLOWED_KEYS = {
-    'keep_kernels': int,
-    'db_path': str,
+    "keep_kernels": int,
+    "db_path": str,
 }
 
 
@@ -101,7 +110,7 @@ def save_config(cfg: dict[str, Any]) -> bool:
         if tomli_w is not None:
             try:
                 dumped = tomli_w.dumps(cfg)
-                with p.open('w', encoding='utf8') as f:
+                with p.open("w", encoding="utf8") as f:
                     f.write(dumped)
                 return True
             except Exception:
@@ -113,7 +122,7 @@ def save_config(cfg: dict[str, Any]) -> bool:
             doc = tomlkit.document()
             for k, v in cfg.items():
                 doc[k] = v
-            with p.open('w', encoding='utf8') as f:
+            with p.open("w", encoding="utf8") as f:
                 f.write(tomlkit.dumps(doc))
             return True
 
@@ -121,7 +130,7 @@ def save_config(cfg: dict[str, Any]) -> bool:
         def _toml_scalar(val: Any) -> str:
             # simple TOML scalar serializer for fallback path
             if isinstance(val, bool):
-                return 'true' if val else 'false'
+                return "true" if val else "false"
             if isinstance(val, int):
                 return str(val)
             if isinstance(val, float):
@@ -130,28 +139,28 @@ def save_config(cfg: dict[str, Any]) -> bool:
                 items = []
                 for it in val:
                     if isinstance(it, bool):
-                        items.append('true' if it else 'false')
+                        items.append("true" if it else "false")
                     elif isinstance(it, int):
                         items.append(str(it))
                     else:
                         s = str(it).replace('"', '\\"')
                         items.append('"' + s + '"')
-                return '[' + ', '.join(items) + ']'
+                return "[" + ", ".join(items) + "]"
             # fallback to quoted string
             s = str(val).replace('"', '\\"')
             return '"' + s + '"'
 
-        with p.open('w', encoding='utf8') as f:
+        with p.open("w", encoding="utf8") as f:
             for k, v in cfg.items():
                 # support nested dicts as TOML tables (only one level deep expected)
                 if isinstance(v, dict):
                     for sub_k, sub_v in v.items():
                         if isinstance(sub_v, dict):
                             # write a table for nested dict under key
-                            f.write(f"[{k}.\"{sub_k}\"]\n")
+                            f.write(f'[{k}."{sub_k}"]\n')
                             for kk, vv in sub_v.items():
                                 f.write(f"{kk} = {_toml_scalar(vv)}\n")
-                            f.write('\n')
+                            f.write("\n")
                         else:
                             f.write(f"{k}.{sub_k} = {_toml_scalar(sub_v)}\n")
                 else:
@@ -197,19 +206,19 @@ def get_effective_value(key: str, code_default: Any = None) -> dict[str, Any] | 
     if key not in _ALLOWED_KEYS:
         return None
 
-    env = os.getenv('SMARTCLEANER_' + key.upper())
+    env = os.getenv("SMARTCLEANER_" + key.upper())
     cfg = load_config() or {}
     cfg_val = cfg.get(key)
 
     # derive code default if not provided
     eff_default = code_default
     # special-case known keys
-    if key == 'keep_kernels' and eff_default is None:
+    if key == "keep_kernels" and eff_default is None:
         try:
             # import KernelCleaner to discover class-level default
             from .plugins.kernels import KernelCleaner
 
-            eff_default = getattr(KernelCleaner, 'KERNELS_TO_KEEP', eff_default)
+            eff_default = getattr(KernelCleaner, "KERNELS_TO_KEEP", eff_default)
         except Exception:
             pass
 
@@ -225,7 +234,7 @@ def get_effective_value(key: str, code_default: Any = None) -> dict[str, Any] | 
     else:
         effective = eff_default
 
-    return {'env': env, 'config': cfg_val, 'code_default': eff_default, 'effective': effective}
+    return {"env": env, "config": cfg_val, "code_default": eff_default, "effective": effective}
 
 
 def _parse_value_by_type(type_name: str, raw_value: Any):
@@ -240,33 +249,33 @@ def _parse_value_by_type(type_name: str, raw_value: Any):
         return None
 
     t = type_name.strip().lower()
-    if t == 'int' or t == 'integer':
+    if t == "int" or t == "integer":
         try:
             return int(raw_value)
         except Exception as e:
             raise ValueError(f"Invalid int value: {raw_value}") from e
-    if t == 'str' or t == 'string':
+    if t == "str" or t == "string":
         return str(raw_value)
-    if t == 'bool' or t == 'boolean':
+    if t == "bool" or t == "boolean":
         if isinstance(raw_value, bool):
             return raw_value
         s = str(raw_value).strip().lower()
-        if s in ('1', 'true', 'yes', 'on'):
+        if s in ("1", "true", "yes", "on"):
             return True
-        if s in ('0', 'false', 'no', 'off'):
+        if s in ("0", "false", "no", "off"):
             return False
         raise ValueError(f"Invalid boolean value: {raw_value}")
-    if t == 'path':
+    if t == "path":
         return Path(str(raw_value))
-    if t.startswith('list'):
+    if t.startswith("list"):
         # forms: list[path], list[str]
-        inner = t[t.find('[') + 1:t.find(']')] if '[' in t and ']' in t else 'str'
+        inner = t[t.find("[") + 1 : t.find("]")] if "[" in t and "]" in t else "str"
         if isinstance(raw_value, (list, tuple)):
             items = list(raw_value)
         else:
             # accept comma-separated string
-            items = [s.strip() for s in str(raw_value).split(',') if s.strip()]
-        if inner == 'path':
+            items = [s.strip() for s in str(raw_value).split(",") if s.strip()]
+        if inner == "path":
             return [Path(i) for i in items]
         return [str(i) for i in items]
 
@@ -284,28 +293,28 @@ def validate_plugin_config(module_name: str, key: str, raw_value: Any):
     Returns the parsed value on success. Raises ValueError on validation error.
     """
     try:
-        mod = __import__(module_name, fromlist=['PLUGIN_INFO'])
+        mod = __import__(module_name, fromlist=["PLUGIN_INFO"])
     except Exception as e:
         raise ValueError(f"Could not import module {module_name}: {e}") from e
 
-    info = getattr(mod, 'PLUGIN_INFO', None)
+    info = getattr(mod, "PLUGIN_INFO", None)
     if not info or not isinstance(info, dict):
         raise ValueError(f"Module {module_name} has no PLUGIN_INFO")
 
-    cfg = info.get('config') or {}
+    cfg = info.get("config") or {}
     if key not in cfg:
         raise ValueError(f"Config key '{key}' not defined for plugin {module_name}")
 
     schema = cfg[key]
     # schema is expected to be a dict with 'type' and optional constraints
-    expected_type = schema.get('type', 'str')
+    expected_type = schema.get("type", "str")
     parsed = _parse_value_by_type(expected_type, raw_value)
 
     # numeric bounds
     # treat 'int' and 'integer' as equivalent in schema
-    if expected_type in ('int', 'integer'):
-        mn = schema.get('min')
-        mx = schema.get('max')
+    if expected_type in ("int", "integer"):
+        mn = schema.get("min")
+        mx = schema.get("max")
         try:
             ival = int(parsed)
         except Exception:
@@ -316,7 +325,7 @@ def validate_plugin_config(module_name: str, key: str, raw_value: Any):
             raise ValueError(f"Value for {key} ({ival}) is greater than maximum {mx}")
 
     # choices
-    choices = schema.get('choices')
+    choices = schema.get("choices")
     if choices is not None:
         # support lists of strings or ints
         if parsed not in choices:
@@ -347,7 +356,7 @@ def set_plugin_config(module_name: str, key: str, raw_value: Any) -> bool:
         return v
 
     cfg = load_config() or {}
-    plugins = cfg.get('plugins') or {}
+    plugins = cfg.get("plugins") or {}
     # ensure nested dicts are plain dicts
     if not isinstance(plugins, dict):
         plugins = {}
@@ -357,7 +366,7 @@ def set_plugin_config(module_name: str, key: str, raw_value: Any) -> bool:
 
     plugin_cfg[key] = _serialize(parsed)
     plugins[module_name] = plugin_cfg
-    cfg['plugins'] = plugins
+    cfg["plugins"] = plugins
 
     return save_config(cfg)
 
@@ -365,6 +374,6 @@ def set_plugin_config(module_name: str, key: str, raw_value: Any) -> bool:
 def get_plugin_config(module_name: str, key: str):
     """Return the stored plugin config value (parsed) or None if absent."""
     cfg = load_config() or {}
-    plugins = cfg.get('plugins') or {}
+    plugins = cfg.get("plugins") or {}
     plugin_cfg = plugins.get(module_name) or {}
     return plugin_cfg.get(key)

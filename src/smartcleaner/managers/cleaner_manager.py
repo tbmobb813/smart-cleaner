@@ -29,7 +29,7 @@ class CleanableItem:
     def get_size_human(self) -> str:
         """Return a human-readable size string without mutating self.size."""
         bytes_val = float(self.size)
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
             if bytes_val < 1024.0:
                 return f"{bytes_val:.2f} {unit}"
             bytes_val /= 1024.0
@@ -49,7 +49,7 @@ class CleanerManager:
         plugin_registry: PluginRegistry | None = None,
         safety_validator: SafetyValidator | None = None,
         undo_manager: UndoManager | None = None,
-        db_manager: DatabaseManager | None = None
+        db_manager: DatabaseManager | None = None,
     ):
         """Initialize the CleanerManager.
 
@@ -67,7 +67,7 @@ class CleanerManager:
         try:
             # populate plugin_factories lazily from available factories
             for fk in self.list_available_factories():
-                module_name, class_name = fk.split(':', 1)
+                module_name, class_name = fk.split(":", 1)
                 try:
                     mod = __import__(module_name, fromlist=[class_name])
                     cls = getattr(mod, class_name, None)
@@ -110,9 +110,9 @@ class CleanerManager:
                 results[plugin.get_name()] = items
                 if items:
                     total_size = sum(item.size for item in items)
+                    plugin_name = plugin.get_name()
                     logger.info(
-                        f"Plugin '{plugin.get_name()}' found {len(items)} items "
-                        f"({self._format_size(total_size)})"
+                        f"Plugin '{plugin_name}' found {len(items)} items ({self._format_size(total_size)})"
                     )
 
             except Exception as e:
@@ -131,25 +131,26 @@ class CleanerManager:
         This inspects the `smartcleaner.plugins` package for .py files and returns importable module names.
         """
         from pathlib import Path
-        pkg_dir = Path(__file__).parent.parent / 'plugins'
+
+        pkg_dir = Path(__file__).parent.parent / "plugins"
         keys: list[str] = []
         if not pkg_dir.exists():
             return keys
-        for p in pkg_dir.glob('*.py'):
-            if p.name in ('__init__.py', 'base.py'):
+        for p in pkg_dir.glob("*.py"):
+            if p.name in ("__init__.py", "base.py"):
                 continue
             module = f"smartcleaner.plugins.{p.stem}"
             # attempt to discover the factory class name: prefer PLUGIN_INFO.class
             try:
-                mod = __import__(module, fromlist=['PLUGIN_INFO'])
+                mod = __import__(module, fromlist=["PLUGIN_INFO"])
             except Exception:
                 # fall back to module-only listing (no class)
                 continue
 
             cls_name = None
-            info = getattr(mod, 'PLUGIN_INFO', None)
+            info = getattr(mod, "PLUGIN_INFO", None)
             if isinstance(info, dict):
-                cls_name = info.get('class')
+                cls_name = info.get("class")
 
             # try to autodiscover first class inheriting BasePlugin if PLUGIN_INFO missing
             if not cls_name:
@@ -159,6 +160,7 @@ class CleanerManager:
                         try:
                             # avoid importing BasePlugin at module import time too early
                             from ..plugins.base import BasePlugin
+
                             if isinstance(obj, type) and issubclass(obj, BasePlugin) and obj is not BasePlugin:
                                 cls_name = obj.__name__
                                 break
@@ -174,25 +176,36 @@ class CleanerManager:
     def get_factories_metadata(self) -> dict[str, dict[str, Any]]:
         """Return metadata about available plugin factories keyed by module name.
 
-        Each entry includes: module, class, class_obj (if loadable), plugin_info (module.PLUGIN_INFO or None), description.
+        Each entry includes:
+            - module
+            - class
+            - class_obj (if loadable)
+            - plugin_info (module.PLUGIN_INFO or None)
+            - description
         """
         out: dict[str, dict[str, Any]] = {}
         for factory_key in self.list_available_factories():
             # factory_key is module:Class
-            module_name, class_name = factory_key.split(':', 1)
+            module_name, class_name = factory_key.split(":", 1)
             try:
                 mod = __import__(module_name, fromlist=[class_name])
             except Exception:
-                out[factory_key] = {'module': module_name, 'class': class_name, 'class_obj': None, 'plugin_info': None, 'description': ''}
+                out[factory_key] = {
+                    "module": module_name,
+                    "class": class_name,
+                    "class_obj": None,
+                    "plugin_info": None,
+                    "description": "",
+                }
                 continue
 
-            plugin_info = getattr(mod, 'PLUGIN_INFO', None)
+            plugin_info = getattr(mod, "PLUGIN_INFO", None)
             cls_obj = None
-            desc = (getattr(mod, '__doc__', '') or '').strip()
+            desc = (getattr(mod, "__doc__", "") or "").strip()
 
             # prefer PLUGIN_INFO.class when present
             if plugin_info and isinstance(plugin_info, dict):
-                cls_name = plugin_info.get('class')
+                cls_name = plugin_info.get("class")
                 if cls_name and hasattr(mod, cls_name):
                     cls_obj = getattr(mod, cls_name)
             # otherwise try the provided class_name
@@ -204,11 +217,11 @@ class CleanerManager:
                     cls_obj = None
 
             out[factory_key] = {
-                'module': module_name,
-                'class': class_name,
-                'class_obj': cls_obj,
-                'plugin_info': plugin_info,
-                'description': desc,
+                "module": module_name,
+                "class": class_name,
+                "class_obj": cls_obj,
+                "plugin_info": plugin_info,
+                "description": desc,
             }
         return out
 
@@ -241,10 +254,7 @@ class CleanerManager:
         return items
 
     def clean_selected(
-        self,
-        items_by_plugin: dict[str, list[CleanableItem]],
-        dry_run: bool = False,
-        enforce_safety: bool = True
+        self, items_by_plugin: dict[str, list[CleanableItem]], dry_run: bool = False, enforce_safety: bool = True
     ) -> dict[str, dict]:
         """Clean selected items across multiple plugins.
 
@@ -269,10 +279,10 @@ class CleanerManager:
             if plugin is None:
                 logger.error(f"Plugin '{plugin_name}' not found")
                 results[plugin_name] = {
-                    'success': False,
-                    'cleaned_count': 0,
-                    'total_size': 0,
-                    'errors': [f"Plugin '{plugin_name}' not found"]
+                    "success": False,
+                    "cleaned_count": 0,
+                    "total_size": 0,
+                    "errors": [f"Plugin '{plugin_name}' not found"],
                 }
                 continue
 
@@ -281,20 +291,12 @@ class CleanerManager:
                 allowed_items = [item for item in items if self.safety_validator.is_allowed(item)]
                 filtered_count = len(items) - len(allowed_items)
                 if filtered_count > 0:
-                    logger.warning(
-                        f"Filtered {filtered_count} items from '{plugin_name}' "
-                        f"due to safety policy"
-                    )
+                    logger.warning(f"Filtered {filtered_count} items from '{plugin_name}' due to safety policy")
                 items = allowed_items
 
             # Skip if no items remain
             if not items:
-                results[plugin_name] = {
-                    'success': True,
-                    'cleaned_count': 0,
-                    'total_size': 0,
-                    'errors': []
-                }
+                results[plugin_name] = {"success": True, "cleaned_count": 0, "total_size": 0, "errors": []}
                 continue
 
             # Perform cleaning
@@ -304,11 +306,11 @@ class CleanerManager:
                 elif dry_run:
                     # Plugin doesn't support dry-run, simulate it
                     result = {
-                        'success': True,
-                        'cleaned_count': len(items),
-                        'total_size': sum(item.size for item in items),
-                        'errors': [],
-                        'dry_run': True
+                        "success": True,
+                        "cleaned_count": len(items),
+                        "total_size": sum(item.size for item in items),
+                        "errors": [],
+                        "dry_run": True,
                     }
                 else:
                     # Perform actual cleaning first; only record operation id on success.
@@ -316,9 +318,9 @@ class CleanerManager:
 
                     # If cleaning succeeded, create a backup log/operation id
                     try:
-                        if result.get('success'):
+                        if result.get("success"):
                             operation_id = self.undo_manager.log_operation(plugin_name, items)
-                            result['operation_id'] = operation_id
+                            result["operation_id"] = operation_id
                             logger.info(f"Created backup operation {operation_id} for '{plugin_name}'")
                     except Exception:
                         # Non-fatal: continue without operation_id
@@ -328,29 +330,22 @@ class CleanerManager:
                     try:
                         self.db.log_clean_operation(
                             plugin_name=plugin_name,
-                            items_count=result.get('cleaned_count', 0),
-                            size_freed=result.get('total_size', 0),
-                            success=result.get('success', False),
-                            error_message='; '.join(result.get('errors', []))
+                            items_count=result.get("cleaned_count", 0),
+                            size_freed=result.get("total_size", 0),
+                            success=result.get("success", False),
+                            error_message="; ".join(result.get("errors", [])),
                         )
                     except Exception:
                         # ignore DB logging failures
                         pass
 
                 results[plugin_name] = result
-                logger.info(
-                    f"Cleaned {result['cleaned_count']} items from '{plugin_name}' "
-                    f"({self._format_size(result['total_size'])})"
-                )
+                size_str = self._format_size(result["total_size"])
+                logger.info(f"Cleaned {result['cleaned_count']} items from '{plugin_name}' ({size_str})")
 
             except Exception as e:
                 logger.error(f"Error cleaning with plugin '{plugin_name}': {e}")
-                results[plugin_name] = {
-                    'success': False,
-                    'cleaned_count': 0,
-                    'total_size': 0,
-                    'errors': [str(e)]
-                }
+                results[plugin_name] = {"success": False, "cleaned_count": 0, "total_size": 0, "errors": [str(e)]}
 
         return results
 
@@ -374,7 +369,7 @@ class CleanerManager:
     def _format_size(self, bytes_val: int) -> str:
         """Format byte size as human-readable string."""
         val = float(bytes_val)
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
             if val < 1024.0:
                 return f"{val:.2f} {unit}"
             val /= 1024.0

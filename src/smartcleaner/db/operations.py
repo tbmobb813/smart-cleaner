@@ -25,7 +25,7 @@ class DatabaseManager:
         if self._conn:
             return
         if self._db_path is None:
-            self._conn = sqlite3.connect(':memory:')
+            self._conn = sqlite3.connect(":memory:")
         else:
             self._db_path.parent.mkdir(parents=True, exist_ok=True)
             self._conn = sqlite3.connect(str(self._db_path))
@@ -36,7 +36,8 @@ class DatabaseManager:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        cur.execute('''
+        cur.execute(
+            """
         CREATE TABLE IF NOT EXISTS clean_operations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT,
@@ -46,9 +47,11 @@ class DatabaseManager:
             success INTEGER,
             error_message TEXT
         )
-        ''')
+        """
+        )
 
-        cur.execute('''
+        cur.execute(
+            """
         CREATE TABLE IF NOT EXISTS undo_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             operation_id INTEGER,
@@ -62,7 +65,8 @@ class DatabaseManager:
             backup_uid INTEGER,
             backup_gid INTEGER
         )
-        ''')
+        """
+        )
 
         self._conn.commit()
         # Create schema versioning table and apply migrations as needed
@@ -73,33 +77,40 @@ class DatabaseManager:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        cur.execute('''
+        cur.execute(
+            """
         CREATE TABLE IF NOT EXISTS schema_version (
             version INTEGER,
             updated TEXT
         )
-        ''')
+        """
+        )
         self._conn.commit()
         # Ensure at least one row exists
-        cur.execute('SELECT COUNT(*) as c FROM schema_version')
+        cur.execute("SELECT COUNT(*) as c FROM schema_version")
         row = cur.fetchone()
-        if row and row['c'] == 0:
-            cur.execute('INSERT INTO schema_version (version, updated) VALUES (?, ?)', (0, datetime.utcnow().isoformat()))
+        if row and row["c"] == 0:
+            cur.execute(
+                "INSERT INTO schema_version (version, updated) VALUES (?, ?)", (0, datetime.utcnow().isoformat())
+            )
             self._conn.commit()
 
     def _get_schema_version(self) -> int:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        cur.execute('SELECT version FROM schema_version LIMIT 1')
+        cur.execute("SELECT version FROM schema_version LIMIT 1")
         row = cur.fetchone()
-        return int(row['version']) if row else 0
+        return int(row["version"]) if row else 0
 
     def _set_schema_version(self, version: int):
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        cur.execute('UPDATE schema_version SET version = ?, updated = ? ', (int(version), datetime.utcnow().isoformat()))
+        sql = (
+            "UPDATE schema_version SET version = ?, updated = ?"
+        )
+        cur.execute(sql, (int(version), datetime.utcnow().isoformat()))
         self._conn.commit()
 
     # Public API to get schema version
@@ -142,17 +153,17 @@ class DatabaseManager:
         assert self._conn is not None
         cur = self._conn.cursor()
         cur.execute("PRAGMA table_info(undo_log)")
-        cols = {row['name'] for row in cur.fetchall()}
+        cols = {row["name"] for row in cur.fetchall()}
         alters = []
-        if 'restored' not in cols:
+        if "restored" not in cols:
             alters.append("ALTER TABLE undo_log ADD COLUMN restored INTEGER DEFAULT 0")
-        if 'restored_timestamp' not in cols:
+        if "restored_timestamp" not in cols:
             alters.append("ALTER TABLE undo_log ADD COLUMN restored_timestamp TEXT")
-        if 'restore_error' not in cols:
+        if "restore_error" not in cols:
             alters.append("ALTER TABLE undo_log ADD COLUMN restore_error TEXT")
-        if 'backup_uid' not in cols:
+        if "backup_uid" not in cols:
             alters.append("ALTER TABLE undo_log ADD COLUMN backup_uid INTEGER")
-        if 'backup_gid' not in cols:
+        if "backup_gid" not in cols:
             alters.append("ALTER TABLE undo_log ADD COLUMN backup_gid INTEGER")
 
         for a in alters:
@@ -164,28 +175,40 @@ class DatabaseManager:
         if alters:
             self._conn.commit()
 
-    def log_clean_operation(self, plugin_name: str, items_count: int, size_freed: int, success: bool, error_message: str | None = None) -> int:
+    def log_clean_operation(
+        self, plugin_name: str, items_count: int, size_freed: int, success: bool, error_message: str | None = None
+    ) -> int:
         ts = datetime.utcnow().isoformat()
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        cur.execute(
-            'INSERT INTO clean_operations (timestamp, plugin_name, items_count, size_freed, success, error_message) VALUES (?, ?, ?, ?, ?, ?)',
-            (ts, plugin_name, items_count, size_freed, int(success), error_message),
+        sql = (
+            "INSERT INTO clean_operations (timestamp, plugin_name, items_count, size_freed, success, error_message) "
+            "VALUES (?, ?, ?, ?, ?, ?)"
         )
+        cur.execute(sql, (ts, plugin_name, items_count, size_freed, int(success), error_message))
         self._conn.commit()
         # cur.lastrowid is usually an int after INSERT; cast for typing safety
         return cast(int, cur.lastrowid)
 
-    def save_undo_item(self, operation_id: int, item_path: str, backup_path: str | None, can_restore: bool = True, backup_uid: int | None = None, backup_gid: int | None = None) -> int:
+    def save_undo_item(
+        self,
+        operation_id: int,
+        item_path: str,
+        backup_path: str | None,
+        can_restore: bool = True,
+        backup_uid: int | None = None,
+        backup_gid: int | None = None,
+    ) -> int:
         ts = datetime.utcnow().isoformat()
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        cur.execute(
-            'INSERT INTO undo_log (operation_id, item_path, backup_path, can_restore, timestamp, backup_uid, backup_gid) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (operation_id, item_path, backup_path, int(can_restore), ts, backup_uid, backup_gid),
+        sql = (
+            "INSERT INTO undo_log (operation_id, item_path, backup_path, can_restore, "
+            "timestamp, backup_uid, backup_gid) VALUES (?, ?, ?, ?, ?, ?, ?)"
         )
+        cur.execute(sql, (operation_id, item_path, backup_path, int(can_restore), ts, backup_uid, backup_gid))
         self._conn.commit()
         return cast(int, cur.lastrowid)
 
@@ -194,17 +217,18 @@ class DatabaseManager:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        cur.execute(
-            'UPDATE undo_log SET restored = ?, restored_timestamp = ?, restore_error = ? WHERE id = ?',
-            (int(success), ts, error_message, undo_id)
+        sql = (
+            "UPDATE undo_log SET restored = ?, restored_timestamp = ?, restore_error = ? "
+            "WHERE id = ?"
         )
+        cur.execute(sql, (int(success), ts, error_message, undo_id))
         self._conn.commit()
 
     def get_recent_operations(self, limit: int = 10) -> list[dict[str, Any]]:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        cur.execute('SELECT * FROM clean_operations ORDER BY id DESC LIMIT ?', (limit,))
+        cur.execute("SELECT * FROM clean_operations ORDER BY id DESC LIMIT ?", (limit,))
         rows = cur.fetchall()
         return [dict(row) for row in rows]
 
@@ -212,6 +236,6 @@ class DatabaseManager:
         self._ensure_conn()
         assert self._conn is not None
         cur = self._conn.cursor()
-        cur.execute('SELECT * FROM undo_log WHERE operation_id = ?', (operation_id,))
+        cur.execute("SELECT * FROM undo_log WHERE operation_id = ?", (operation_id,))
         rows = cur.fetchall()
         return [dict(row) for row in rows]

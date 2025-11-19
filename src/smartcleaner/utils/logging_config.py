@@ -12,7 +12,7 @@ def setup_logging(
     level: int = logging.INFO,
     log_file: Path | None = None,
     console_output: bool = True,
-    format_string: str | None = None
+    format_string: str | None = None,
 ) -> None:
     """Configure logging for Smart Cleaner.
 
@@ -24,7 +24,7 @@ def setup_logging(
     """
     # Default format: timestamp, level, module, message
     if format_string is None:
-        format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format_string = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     # Configure root logger
     root_logger = logging.getLogger()
@@ -64,13 +64,9 @@ def setup_cli_logging(verbose: bool = False, quiet: bool = False) -> None:
         level = logging.INFO
 
     # Use simpler format for CLI
-    format_string = '%(levelname)s: %(message)s'
+    format_string = "%(levelname)s: %(message)s"
 
-    setup_logging(
-        level=level,
-        console_output=True,
-        format_string=format_string
-    )
+    setup_logging(level=level, console_output=True, format_string=format_string)
 
 
 def get_logger(name: str) -> logging.Logger:

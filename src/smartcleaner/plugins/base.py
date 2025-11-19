@@ -79,11 +79,11 @@ class BasePlugin(ABC):
             Same structure as clean() method.
         """
         return {
-            'success': True,
-            'cleaned_count': len(items),
-            'total_size': sum(item.size for item in items),
-            'errors': [],
-            'dry_run': True
+            "success": True,
+            "cleaned_count": len(items),
+            "total_size": sum(item.size for item in items),
+            "errors": [],
+            "dry_run": True,
         }
 
     def is_available(self) -> bool:

@@ -23,6 +23,7 @@ except Exception:
     class _Placeholder:
         def __init__(self, *args, **kwargs):
             pass
+
     QApplication = QMainWindow = QWidget = _Placeholder
     QHBoxLayout = QVBoxLayout = QListWidget = QTableWidget = QTableWidgetItem = QPushButton = QStatusBar = _Placeholder
     Qt = None
@@ -42,7 +43,7 @@ class MainWindow(_QMainWindow):
 
     def __init__(self):
         # If Qt classes are objects due to missing PyQt6, don't init GUI
-        if not callable(getattr(super(), '__init__', None)):
+        if not callable(getattr(super(), "__init__", None)):
             return
         super().__init__()
         self.setWindowTitle("Smart Cleaner - PyQt6 (Skeleton)")
@@ -120,14 +121,14 @@ class MainWindow(_QMainWindow):
             # description
             self.table.setItem(row, 0, QTableWidgetItem(item.description))
             # use CleanableItem.get_size_human() if available, otherwise fallback
-            size_text = getattr(item, 'get_size_human', None)
+            size_text = getattr(item, "get_size_human", None)
             if callable(size_text):
                 size_text = item.get_size_human()
             else:
                 size_text = self._format_size(item.size)
             self.table.setItem(row, 1, QTableWidgetItem(size_text))
             # show safety level name if it's an enum, otherwise string
-            safety_text = item.safety.name if hasattr(item.safety, 'name') else str(item.safety)
+            safety_text = item.safety.name if hasattr(item.safety, "name") else str(item.safety)
             self.table.setItem(row, 2, QTableWidgetItem(safety_text))
 
     def on_clean(self):
@@ -135,7 +136,7 @@ class MainWindow(_QMainWindow):
         # Build selection: all items for simplicity
         items_by_plugin = self._scan_results
         results = self.manager.clean_selected(items_by_plugin, dry_run=False)
-        total = sum(r.get('total_size', 0) for r in results.values())
+        total = sum(r.get("total_size", 0) for r in results.values())
         self.status.showMessage(f"Clean complete. Freed {self._format_size(total)}")
 
     def on_undo(self):
@@ -143,7 +144,7 @@ class MainWindow(_QMainWindow):
         self.status.showMessage("Undo not implemented in skeleton")
 
     def _format_size(self, bytes):
-        for unit in ['B','KB','MB','GB','TB']:
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
             if bytes < 1024.0:
                 return f"{bytes:.2f} {unit}"
             bytes /= 1024.0

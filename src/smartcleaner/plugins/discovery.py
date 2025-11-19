@@ -22,7 +22,7 @@ def get_factories_metadata() -> dict[str, dict[str, Any]]:
     meta = mgr.get_factories_metadata()
     out: dict[str, dict[str, Any]] = {}
     for key, v in meta.items():
-        cls = v.get('class_obj')
+        cls = v.get("class_obj")
         class_path: str | None = None
         try:
             if cls is not None:
@@ -31,11 +31,11 @@ def get_factories_metadata() -> dict[str, dict[str, Any]]:
             class_path = None
 
         out[key] = {
-            'module': v.get('module'),
-            'class': v.get('class'),
-            'class_path': class_path,
-            'plugin_info': v.get('plugin_info'),
-            'description': v.get('description'),
+            "module": v.get("module"),
+            "class": v.get("class"),
+            "class_path": class_path,
+            "plugin_info": v.get("plugin_info"),
+            "description": v.get("description"),
         }
 
     return out
@@ -52,9 +52,9 @@ def get_plugin_info(factory_key: str) -> dict[str, Any] | None:
 
     The factory_key may be the form 'module:Class' or just a module.
     """
-    module_name = factory_key.split(':', 1)[0]
+    module_name = factory_key.split(":", 1)[0]
     try:
-        mod = __import__(module_name, fromlist=['PLUGIN_INFO'])
+        mod = __import__(module_name, fromlist=["PLUGIN_INFO"])
     except Exception:
         return None
-    return getattr(mod, 'PLUGIN_INFO', None)
+    return getattr(mod, "PLUGIN_INFO", None)

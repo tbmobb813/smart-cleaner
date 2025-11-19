@@ -15,6 +15,7 @@ class SafetyValidator:
     def __init__(self, max_level: "SafetyLevel | None" = None):
         # Import at runtime only when needed to avoid circular imports
         from .cleaner_manager import SafetyLevel as _SafetyLevel
+
         self.max_level = max_level if max_level is not None else _SafetyLevel.CAUTION
 
     def is_allowed(self, item: "CleanableItem") -> bool:

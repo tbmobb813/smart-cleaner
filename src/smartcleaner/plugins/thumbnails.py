@@ -16,7 +16,7 @@ class ThumbnailCacheCleaner(BasePlugin):
 
     def __init__(self, home_dir: Path = Path.home(), cache_dir: Path | None = None):
         self.home_dir = Path(home_dir)
-        self.thumbnails_dir = Path(cache_dir) if cache_dir is not None else self.home_dir / '.cache' / 'thumbnails'
+        self.thumbnails_dir = Path(cache_dir) if cache_dir is not None else self.home_dir / ".cache" / "thumbnails"
 
     def get_name(self) -> str:
         return "Thumbnail Cache"
@@ -39,9 +39,17 @@ class ThumbnailCacheCleaner(BasePlugin):
                 elif subdir.is_file():
                     # Include files directly under thumbnails_dir
                     from ..managers.cleaner_manager import CleanableItem, SafetyLevel
+
                     try:
                         size = subdir.stat().st_size
-                        items.append(CleanableItem(path=str(subdir), size=size, description=f"Thumbnail: {subdir.name}", safety=SafetyLevel.SAFE))
+                        items.append(
+                            CleanableItem(
+                                path=str(subdir),
+                                size=size,
+                                description=f"Thumbnail: {subdir.name}",
+                                safety=SafetyLevel.SAFE,
+                            )
+                        )
                     except (OSError, PermissionError):
                         continue
         except (OSError, PermissionError):
@@ -61,12 +69,15 @@ class ThumbnailCacheCleaner(BasePlugin):
                         size = entry.stat().st_size
                         category = path.name.title()  # 'normal' -> 'Normal', 'large' -> 'Large'
                         from ..managers.cleaner_manager import CleanableItem, SafetyLevel
-                        items.append(CleanableItem(
-                            path=str(entry),
-                            size=size,
-                            description=f"{category} thumbnail: {entry.name}",
-                            safety=SafetyLevel.SAFE
-                        ))
+
+                        items.append(
+                            CleanableItem(
+                                path=str(entry),
+                                size=size,
+                                description=f"{category} thumbnail: {entry.name}",
+                                safety=SafetyLevel.SAFE,
+                            )
+                        )
                     except (OSError, PermissionError):
                         # Skip files we can't access
                         continue
@@ -77,12 +88,7 @@ class ThumbnailCacheCleaner(BasePlugin):
         return items
 
     def clean(self, items: "list[CleanableItem]") -> dict[str, Any]:
-        result: dict[str, Any] = {
-            'success': True,
-            'cleaned_count': 0,
-            'total_size': 0,
-            'errors': []
-        }
+        result: dict[str, Any] = {"success": True, "cleaned_count": 0, "total_size": 0, "errors": []}
 
         for item in items:
             try:
@@ -90,11 +96,11 @@ class ThumbnailCacheCleaner(BasePlugin):
                 if file_path.exists():
                     size = file_path.stat().st_size
                     file_path.unlink()
-                    result['cleaned_count'] += 1
-                    result['total_size'] += size
+                    result["cleaned_count"] += 1
+                    result["total_size"] += size
             except (OSError, PermissionError) as e:
-                result['errors'].append(f"Failed to delete {item.path}: {e}")
-                result['success'] = False
+                result["errors"].append(f"Failed to delete {item.path}: {e}")
+                result["success"] = False
 
         return result
 
@@ -107,11 +113,11 @@ class ThumbnailCacheCleaner(BasePlugin):
 
     def clean_dry_run(self, items: "list[CleanableItem]") -> dict[str, Any]:
         return {
-            'success': True,
-            'cleaned_count': len(items),
-            'total_size': sum(item.size for item in items),
-            'errors': [],
-            'dry_run': True
+            "success": True,
+            "cleaned_count": len(items),
+            "total_size": sum(item.size for item in items),
+            "errors": [],
+            "dry_run": True,
         }
 
     def get_priority(self) -> int:
