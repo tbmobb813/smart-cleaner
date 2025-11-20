@@ -166,6 +166,55 @@ pip install pre-commit
 pre-commit install
 ```
 
+## Regenerating pinned dev constraints
+
+When bumping development tools (black, ruff, mypy, pre-commit, pytest, etc.), regenerate `requirements-dev-constraints.txt` so CI uses exact pinned versions.
+
+Two options:
+
+- Quick (works without extra tools): create a fresh venv, install the dev extras, and write a filtered `pip freeze` output containing the dev tools you want pinned.
+
+```bash
+# create a fresh venv
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+
+# install dev extras in editable mode
+pip install -e ".[dev]"
+
+# produce a constraints file with the common dev tools (adjust the grep list to your needs)
+pip freeze | grep -E '^(black|ruff|mypy|pre-commit|pytest|pytest-cov|pytest-mock|click|tomli|tomli_w|tomlkit|rich|packaging)' > requirements-dev-constraints.txt
+
+# Deactivate and commit the file
+deactivate
+git add requirements-dev-constraints.txt
+git commit -m "chore(dev): regenerate pinned dev constraints"
+```
+
+- Recommended (more robust): use `pip-tools` to compile a constraints file from a minimal `requirements-dev.in` input.
+
+```bash
+# install pip-tools into your venv
+pip install pip-tools
+
+# create requirements-dev.in with the top-level dev tools, for example:
+# black
+# ruff
+# mypy
+# pre-commit
+# pytest
+
+# then compile to a pinned constraints file
+pip-compile --output-file=requirements-dev-constraints.txt requirements-dev.in
+
+# Commit the updated file
+git add requirements-dev-constraints.txt
+git commit -m "chore(dev): regenerate pinned dev constraints via pip-compile"
+```
+
+Note: After updating `requirements-dev-constraints.txt`, open a PR and ensure CI passes; the `validate-constraints` job will confirm the pinned versions match what CI installs.
+
 ## Submitting Changes
 
 ### Commit Messages

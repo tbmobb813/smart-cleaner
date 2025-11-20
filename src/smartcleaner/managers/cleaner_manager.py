@@ -1,4 +1,5 @@
 import logging
+import os
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any
@@ -8,6 +9,7 @@ from ..plugins.base import BasePlugin
 from .plugin_registry import PluginRegistry, get_default_registry
 from .safety_validator import SafetyValidator
 from .undo_manager import UndoManager
+from .plugin_runner import run_subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +82,12 @@ class CleanerManager:
         self.safety_validator = safety_validator or SafetyValidator()
         self.db = db_manager or DatabaseManager()
         self.undo_manager = undo_manager or UndoManager(db=self.db)
+        # If True, run plugin scan/clean methods in subprocesses for isolation.
+        # Can be enabled via env var SMARTCLEANER_PLUGIN_ISOLATION=1 or by passing
+        # plugin_isolation=True to the constructor.
+        self.plugin_isolation = bool(
+            int(os.environ.get("SMARTCLEANER_PLUGIN_ISOLATION", "0"))
+        )
 
     def scan_all(self, safety_filter: SafetyLevel | None = None) -> dict[str, list[CleanableItem]]:
         """Scan all available plugins and return cleanable items.
@@ -99,7 +107,47 @@ class CleanerManager:
         for plugin in plugin_instances:
             try:
                 logger.debug(f"Scanning plugin: {plugin.get_name()}")
-                items = plugin.scan()
+                # Determine whether to run this plugin in isolation. Per-plugin
+                # opt-in via PLUGIN_INFO['isolate']=True overrides the global
+                # env var setting.
+                try:
+                    mod = __import__(plugin.__class__.__module__, fromlist=["PLUGIN_INFO"])
+                    pinfo = getattr(mod, "PLUGIN_INFO", None) or getattr(plugin.__class__, "PLUGIN_INFO", None)
+                except Exception:
+                    pinfo = getattr(plugin.__class__, "PLUGIN_INFO", None)
+
+                per_plugin_isolate = None
+                if isinstance(pinfo, dict):
+                    per_plugin_isolate = pinfo.get("isolate", None)
+
+                # Decide isolation mode: per-plugin setting overrides global env.
+                # Support boolean True (legacy) -> 'subprocess', or string values like 'userns'.
+                isolation_mode = None
+                if per_plugin_isolate is not None:
+                    isolation_mode = "subprocess" if per_plugin_isolate is True else str(per_plugin_isolate)
+                elif self.plugin_isolation:
+                    isolation_mode = "subprocess"
+
+                if isolation_mode:
+                    # run scan in subprocess; expect a list of dicts
+                    res = run_subprocess(
+                        plugin.__class__.__module__, plugin.__class__.__name__, "scan", isolation=isolation_mode
+                    )
+                    # convert dicts to CleanableItem
+                    items = []
+                    for it in res:
+                        size = it.get("size") or it.get("size_bytes") or 0
+                        safety = it.get("safety", "SAFE")
+                        try:
+                            safety_lvl = SafetyLevel[safety]
+                        except Exception:
+                            # fallback to SAFE
+                            safety_lvl = SafetyLevel.SAFE
+                        items.append(
+                            CleanableItem(path=it.get("path", ""), size=int(size), description=it.get("description", ""), safety=safety_lvl)
+                        )
+                else:
+                    items = plugin.scan()
 
                 # Apply safety filter if provided
                 if safety_filter is not None:
@@ -243,7 +291,21 @@ class CleanerManager:
         if not plugin.is_available():
             raise ValueError(f"Plugin '{plugin_name}' is not available on this system")
 
-        items = plugin.scan()
+        if self.plugin_isolation:
+            res = run_subprocess(plugin.__class__.__module__, plugin.__class__.__name__, "scan")
+            items = []
+            for it in res:
+                size = it.get("size") or it.get("size_bytes") or 0
+                safety = it.get("safety", "SAFE")
+                try:
+                    safety_lvl = SafetyLevel[safety]
+                except Exception:
+                    safety_lvl = SafetyLevel.SAFE
+                items.append(
+                    CleanableItem(path=it.get("path", ""), size=int(size), description=it.get("description", ""), safety=safety_lvl)
+                )
+        else:
+            items = plugin.scan()
 
         # Apply safety filter
         if safety_filter is not None:
@@ -300,7 +362,10 @@ class CleanerManager:
             # Perform cleaning
             try:
                 if dry_run and plugin.supports_dry_run():
-                    result = plugin.clean_dry_run(items)
+                    if self.plugin_isolation:
+                        result = run_subprocess(plugin.__class__.__module__, plugin.__class__.__name__, "clean_dry_run")
+                    else:
+                        result = plugin.clean_dry_run(items)
                 elif dry_run:
                     # Plugin doesn't support dry-run, simulate it
                     result = {
@@ -312,7 +377,10 @@ class CleanerManager:
                     }
                 else:
                     # Perform actual cleaning first; only record operation id on success.
-                    result = plugin.clean(items)
+                    if self.plugin_isolation:
+                        result = run_subprocess(plugin.__class__.__module__, plugin.__class__.__name__, "clean")
+                    else:
+                        result = plugin.clean(items)
 
                     # If cleaning succeeded, create a backup log/operation id
                     try:

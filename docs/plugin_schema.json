@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Smart Cleaner Plugin Schema",
+  "type": "object",
+  "required": ["PLUGIN_INFO"],
+  "properties": {
+    "PLUGIN_INFO": {
+      "type": "object",
+      "required": ["name", "version", "description", "safety"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "description": { "type": "string" },
+        "safety": { "type": "string", "enum": ["SAFE", "CAUTION", "ADVANCED", "DANGEROUS"] }
+      },
+      "additionalProperties": true
+    },
+    "scan_item": {
+      "type": "object",
+      "required": ["path", "size_bytes"],
+      "properties": {
+        "path": { "type": "string" },
+        "size_bytes": { "type": "number", "minimum": 0 }
+      }
+    }
+  },
+  "additionalProperties": true
+}

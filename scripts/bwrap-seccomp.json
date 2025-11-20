@@ -1,0 +1,47 @@
+
+{
+  "defaultAction": "SCMP_ACT_ERRNO",
+  "architectures": [],
+  "syscalls": [
+    {
+      "names": [
+        "read",
+        "write",
+        "exit",
+        "exit_group",
+        "futex",
+        "clock_gettime",
+        "nanosleep",
+        "rt_sigreturn",
+        "rt_sigprocmask",
+        "rt_sigaction",
+        "sigaltstack",
+        "sigreturn",
+        "poll",
+        "ppoll",
+        "lseek",
+        "openat",
+        "close",
+        "brk",
+        "mmap",
+        "mprotect",
+        "munmap",
+        "arch_prctl",
+        "set_tid_address",
+        "set_robust_list",
+        "prlimit64",
+        "getrandom",
+        "getcwd",
+        "stat",
+        "fstat",
+        "lstat",
+        "newfstatat",
+        "access",
+        "faccessat",
+        "open",
+        "futex_waitv"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    }
+  ]
+}
