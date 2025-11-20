@@ -4,31 +4,14 @@ Thank you for your interest in contributing to Smart Cleaner! This document prov
 
 ## Table of Contents
 
-- [Contributing to Smart Cleaner](#contributing-to-smart-cleaner)
-  - [Table of Contents](#table-of-contents)
-  - [Code of Conduct](#code-of-conduct)
-  - [Getting Started](#getting-started)
-  - [Development Environment Setup](#development-environment-setup)
-    - [Prerequisites](#prerequisites)
-    - [Setup Steps](#setup-steps)
-  - [Making Changes](#making-changes)
-    - [Branch Naming](#branch-naming)
-    - [Code Style](#code-style)
-    - [Type Hints](#type-hints)
-  - [Testing](#testing)
-    - [Running Tests](#running-tests)
-    - [Writing Tests](#writing-tests)
-  - [Code Quality](#code-quality)
-    - [Pre-commit Checks](#pre-commit-checks)
-    - [Optional: Pre-commit Hooks](#optional-pre-commit-hooks)
-  - [Submitting Changes](#submitting-changes)
-    - [Commit Messages](#commit-messages)
-    - [Pull Request Process](#pull-request-process)
-    - [PR Template](#pr-template)
-  - [Plugin Development](#plugin-development)
-    - [Creating a New Plugin](#creating-a-new-plugin)
-    - [Plugin Guidelines](#plugin-guidelines)
-  - [Questions?](#questions)
+- [Code of Conduct](#code-of-conduct)
+- [Getting Started](#getting-started)
+- [Development Environment Setup](#development-environment-setup)
+- [Making Changes](#making-changes)
+- [Testing](#testing)
+- [Code Quality](#code-quality)
+- [Submitting Changes](#submitting-changes)
+- [Plugin Development](#plugin-development)
 
 ## Code of Conduct
 
@@ -79,7 +62,6 @@ smartcleaner --help
 ### Branch Naming
 
 Use descriptive branch names:
-
 - `feature/add-docker-plugin` - for new features
 - `fix/apt-cache-permission` - for bug fixes
 - `docs/update-readme` - for documentation
@@ -239,15 +221,16 @@ Note: After updating `requirements-dev-constraints.txt`, open a PR and ensure CI
 
 Write clear, descriptive commit messages:
 
+```
 feat: add Docker container cleanup plugin
 
 - Implement DockerCleaner plugin for unused containers
 - Add tests for container scanning
 - Update plugin registry to include Docker
 - Add documentation for Docker plugin
+```
 
 Format:
-
 - First line: `<type>: <short description>` (50 chars or less)
 - Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
 - Body: Detailed explanation (optional, use bullet points)
@@ -335,7 +318,7 @@ class MyPluginCleaner(BasePlugin):
         return True
 ```
 
-1. **Register plugin**: Add to `src/smartcleaner/managers/plugin_registry.py`
+2. **Register plugin**: Add to `src/smartcleaner/managers/plugin_registry.py`
 
 ```python
 from ..plugins.my_plugin import MyPluginCleaner
@@ -344,9 +327,9 @@ from ..plugins.my_plugin import MyPluginCleaner
 self.register_plugin_class(MyPluginCleaner)
 ```
 
-1. **Add tests**: Create `tests/test_my_plugin.py`
+3. **Add tests**: Create `tests/test_my_plugin.py`
 
-2. **Update documentation**: Add plugin to README.md table
+4. **Update documentation**: Add plugin to README.md table
 
 ### Plugin Guidelines
 
